@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Messaggi — JobFinder</title>
+  <link rel="icon" type="image/x-icon" href="../assets/images/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/images/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="../assets/images/favicon-16.png" />
+  <link rel="apple-touch-icon" href="../assets/images/apple-touch-icon.png" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+  <div id="navbar-root" data-base-path="../"></div>
+
+  <main class="dashboard">
+    <div class="container">
+      <div class="chat-layout">
+
+        <aside class="chat-sidebar">
+          <h3 class="chat-sidebar__title">Messaggi</h3>
+          <div id="conversationList"></div>
+        </aside>
+
+        <section class="chat-window" id="chatWindow">
+          <div class="chat-empty">
+            <h3>Seleziona una conversazione</h3>
+            <p class="text-muted">Scegli una chat dalla lista per leggere e rispondere.</p>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <script src="../js/storage.js" defer></script>
+  <script src="../js/auth.js" defer></script>
+  <script src="../js/geo.js" defer></script>
+  <script src="../js/jobs.js" defer></script>
+  <script src="../js/matching.js" defer></script>
+  <script src="../js/chat.js" defer></script>
+  <script src="../js/app.js" defer></script>
+  <script defer>
+    let currentUser = null;
+    let activeConversationId = null;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      JF.App.initPage();
+      currentUser = JF.Auth.requireAuth(null); // qualsiasi utente loggato, candidato o azienda
+      if (!currentUser) return;
+
+      renderConversationList();
+
+      // Se si arriva da un link tipo chat.html?conv=ID (es. dopo aver avviato una richiesta), aprila subito
+      const params = new URLSearchParams(window.location.search);
+      const requestedConv = params.get("conv");
+      if (requestedConv) openConversation(requestedConv);
+    });
+
+    function otherPartyName(conv) {
+      if (!conv.otherUser) return "Utente eliminato";
+      return conv.otherUser.tipo === "azienda" ? conv.otherUser.ragioneSociale : `${conv.otherUser.nome} ${conv.otherUser.cognome}`.trim();
+    }
+
+    function renderConversationList() {
+      const conversations = JF.Chat.getConversationsForUser(currentUser.id, currentUser.tipo);
+      const list = document.getElementById("conversationList");
+
+      if (conversations.length === 0) {
+        list.innerHTML = `<p class="text-muted" style="padding: 16px;">Nessuna conversazione ancora. Scrivi a un'azienda dalla pagina di un'offerta, o a un candidato dalle candidature ricevute.</p>`;
+        return;
+      }
+
+      list.innerHTML = conversations
+        .map((conv) => {
+          const name = otherPartyName(conv);
+          const preview = conv.lastMessage
+            ? conv.lastMessage.testo || (conv.lastMessage.allegato ? `📎 ${conv.lastMessage.allegato.name}` : "")
+            : "Nessun messaggio";
+          let statusBadge = "";
+          if (conv.status === "declined") {
+            statusBadge = `<span class="tag tag--danger" style="margin-top:4px;">Rifiutata</span>`;
+          } else if (conv.awaitingMyDecision) {
+            statusBadge = `<span class="tag tag--warning" style="margin-top:4px;">Richiesta da accettare</span>`;
+          } else if (conv.awaitingTheirDecision) {
+            statusBadge = `<span class="tag tag--muted" style="margin-top:4px;">In attesa di risposta</span>`;
+          } else if (conv.unreadCount > 0) {
+            statusBadge = `<span class="tag tag--success" style="margin-top:4px;">${conv.unreadCount} nuovi</span>`;
+          }
+
+          return `
+            <button type="button" class="chat-list-item ${conv.id === activeConversationId ? "is-active" : ""}" data-conv-id="${conv.id}">
+              ${JF.Jobs.renderAvatar(conv.otherUser, "chat-list-item__avatar")}
+              <div class="chat-list-item__body">
+                <div class="chat-list-item__top">
+                  <span class="chat-list-item__name">${JF.Jobs.escapeHtml(name)}</span>
+                </div>
+                ${conv.job ? `<span class="chat-list-item__job">${JF.Jobs.escapeHtml(conv.job.titolo)}</span>` : ""}
+                <p class="chat-list-item__preview">${JF.Jobs.escapeHtml(preview)}</p>
+                ${statusBadge}
+              </div>
+            </button>
+          `;
+        })
+        .join("");
+
+      list.querySelectorAll("[data-conv-id]").forEach((btn) => {
+        btn.addEventListener("click", () => openConversation(btn.dataset.convId));
+      });
+    }
+
+    function openConversation(convId) {
+      const conv = JF.Chat.getConversationById(convId);
+      const windowEl = document.getElementById("chatWindow");
+      if (!conv) {
+        windowEl.innerHTML = `<div class="chat-empty"><h3>Conversazione non trovata</h3></div>`;
+        return;
+      }
+
+      activeConversationId = convId;
+      const isCandidate = currentUser.tipo === "candidato";
+      const myField = isCandidate ? "candidatoId" : "aziendaId";
+      if (conv[myField] !== currentUser.id) return; // non è una mia conversazione
+
+      JF.Chat.markConversationAsRead(convId, currentUser.id);
+
+      const otherUser = JF.Storage.getUserById(isCandidate ? conv.aziendaId : conv.candidatoId);
+      const name = otherUser ? (otherUser.tipo === "azienda" ? otherUser.ragioneSociale : `${otherUser.nome} ${otherUser.cognome}`.trim()) : "Utente eliminato";
+      const job = conv.jobId ? JF.Storage.getJobById(conv.jobId) : null;
+      const messages = JF.Chat.getMessages(convId);
+      const awaitingMyDecision = conv.status === "pending" && conv.initiatorId !== currentUser.id;
+      const awaitingTheirDecision = conv.status === "pending" && conv.initiatorId === currentUser.id;
+
+      windowEl.innerHTML = `
+        <div class="chat-window__header">
+          ${JF.Jobs.renderAvatar(otherUser, "chat-list-item__avatar")}
+          <div style="flex:1;">
+            <div class="chat-window__name">${JF.Jobs.escapeHtml(name)}</div>
+            ${job ? `<div class="chat-window__job">Riguardo: ${JF.Jobs.escapeHtml(job.titolo)}</div>` : ""}
+          </div>
+          ${
+            currentUser.tipo === "azienda" && otherUser && otherUser.tipo === "candidato"
+              ? `<a class="btn btn--ghost btn--sm" href="candidate-profile.html?id=${encodeURIComponent(otherUser.id)}${conv.jobId ? `&job=${encodeURIComponent(conv.jobId)}` : ""}">👤 Vedi profilo</a>`
+              : ""
+          }
+        </div>
+        <div class="chat-messages" id="chatMessages">
+          ${messages.map((m) => renderBubble(m)).join("")}
+        </div>
+        <div id="chatFooter"></div>
+      `;
+
+      const messagesEl = document.getElementById("chatMessages");
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+
+      const footer = document.getElementById("chatFooter");
+      if (conv.status === "declined") {
+        footer.innerHTML = `<div class="chat-banner chat-banner--declined">Questa conversazione è stata rifiutata: non è più possibile scrivere.</div>`;
+      } else if (awaitingMyDecision) {
+        footer.innerHTML = `
+          <div class="chat-banner chat-banner--pending">
+            <p>${JF.Jobs.escapeHtml(name)} ti ha scritto per la prima volta. Vuoi avviare la conversazione?</p>
+            <div class="chat-banner__actions">
+              <button class="btn btn--primary btn--sm" id="acceptConvBtn">Accetta</button>
+              <button class="btn btn--danger btn--sm" id="declineConvBtn">Rifiuta</button>
+            </div>
+          </div>
+        `;
+        document.getElementById("acceptConvBtn").addEventListener("click", () => respondToConversation(convId, true));
+        document.getElementById("declineConvBtn").addEventListener("click", () => respondToConversation(convId, false));
+      } else {
+        footer.innerHTML = `
+          ${awaitingTheirDecision ? `<div class="chat-banner chat-banner--waiting">In attesa che ${JF.Jobs.escapeHtml(name)} accetti la conversazione. Puoi continuare a scrivere nel frattempo.</div>` : ""}
+          <div id="chatAttachmentPreview"></div>
+          <form class="chat-input-row" id="chatSendForm">
+            <input type="file" id="chatAttachmentInput" class="visually-hidden" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg" />
+            <button type="button" class="chat-attach-btn" id="chatAttachBtn" title="Allega un file" aria-label="Allega un file">📎</button>
+            <input class="input" type="text" id="chatInput" placeholder="Scrivi un messaggio..." autocomplete="off" />
+            <button class="btn btn--primary" type="submit">Invia</button>
+          </form>
+        `;
+        pendingAttachment = null;
+        renderAttachmentPreview();
+
+        document.getElementById("chatAttachBtn").addEventListener("click", () => {
+          document.getElementById("chatAttachmentInput").click();
+        });
+        document.getElementById("chatAttachmentInput").addEventListener("change", handleAttachmentChange);
+
+        document.getElementById("chatSendForm").addEventListener("submit", (e) => {
+          e.preventDefault();
+          const input = document.getElementById("chatInput");
+          const result = JF.Chat.sendMessage(convId, currentUser.id, currentUser.tipo, input.value, pendingAttachment);
+          if (!result.ok) {
+            JF.App.showToast(result.error, "error");
+            return;
+          }
+          input.value = "";
+          pendingAttachment = null;
+          openConversation(convId);
+          renderConversationList();
+        });
+      }
+
+      renderConversationList(); // per aggiornare lo stato "attivo" e i badge non letti nella lista
+    }
+
+    // Allegato scelto ma non ancora inviato, in attesa che l'utente prema "Invia"
+    let pendingAttachment = null;
+    const MAX_ATTACHMENT_BYTES = 3 * 1024 * 1024; // 3MB: limite prudente per non saturare LocalStorage
+
+    function handleAttachmentChange(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      if (file.size > MAX_ATTACHMENT_BYTES) {
+        JF.App.showToast("Il file è troppo grande: massimo 3MB in questa demo", "error");
+        e.target.value = "";
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        pendingAttachment = { name: file.name, dataUrl: reader.result, size: file.size };
+        renderAttachmentPreview();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    /** Mostra il "chip" dell'allegato in attesa di invio, con possibilità di rimuoverlo prima di inviare. */
+    function renderAttachmentPreview() {
+      const container = document.getElementById("chatAttachmentPreview");
+      if (!container) return;
+      if (!pendingAttachment) {
+        container.innerHTML = "";
+        return;
+      }
+      container.innerHTML = `
+        <div class="chat-attachment-chip">
+          <span>📎 ${JF.Jobs.escapeHtml(pendingAttachment.name)}</span>
+          <button type="button" id="chatAttachmentRemove" aria-label="Rimuovi allegato">&times;</button>
+        </div>
+      `;
+      document.getElementById("chatAttachmentRemove").addEventListener("click", () => {
+        pendingAttachment = null;
+        const fileInput = document.getElementById("chatAttachmentInput");
+        if (fileInput) fileInput.value = "";
+        renderAttachmentPreview();
+      });
+    }
+
+    function renderBubble(message) {
+      const mine = message.senderId === currentUser.id;
+      const time = new Date(message.timestamp).toLocaleString("it-IT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+      const attachmentHtml = message.allegato
+        ? `<a class="chat-attachment-link" href="${message.allegato.dataUrl}" download="${JF.Jobs.escapeHtml(message.allegato.name)}" target="_blank" rel="noopener">📎 ${JF.Jobs.escapeHtml(message.allegato.name)}</a>`
+        : "";
+      return `
+        <div class="chat-bubble-row ${mine ? "chat-bubble-row--mine" : ""}">
+          <div class="chat-bubble ${mine ? "chat-bubble--mine" : ""}">
+            ${message.testo ? `<p>${JF.Jobs.escapeHtml(message.testo)}</p>` : ""}
+            ${attachmentHtml}
+            <span class="chat-bubble__time">${time}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function respondToConversation(convId, accept) {
+      const result = JF.Chat.respondToRequest(convId, currentUser.id, accept);
+      if (!result.ok) {
+        JF.App.showToast(result.error, "error");
+        return;
+      }
+      JF.App.showToast(accept ? "Conversazione accettata" : "Conversazione rifiutata");
+      openConversation(convId);
+    }
+  </script>
+</body>
+</html>

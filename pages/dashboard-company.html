@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Area azienda — JobFinder</title>
+  <link rel="icon" type="image/x-icon" href="../assets/images/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/images/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="../assets/images/favicon-16.png" />
+  <link rel="apple-touch-icon" href="../assets/images/apple-touch-icon.png" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+  <div id="navbar-root" data-base-path="../"></div>
+
+  <main class="dashboard">
+    <div class="container">
+      <div class="dashboard__grid">
+
+        <!-- ===================== SIDEBAR ===================== -->
+        <aside class="dashboard__sidebar">
+          <div class="dashboard__profile-mini">
+            <div class="dashboard__avatar" id="miniAvatar">--</div>
+            <div>
+              <strong id="miniName">—</strong>
+              <span id="miniEmail">—</span>
+            </div>
+          </div>
+          <nav class="sidebar-nav">
+            <button type="button" class="is-active" data-panel="profilo">🏢 Profilo azienda</button>
+            <button type="button" data-panel="offerte">📋 Le mie offerte</button>
+            <button type="button" data-panel="candidature">📥 Candidature ricevute</button>
+          </nav>
+        </aside>
+
+        <!-- ===================== CONTENUTO ===================== -->
+        <section class="dashboard__content">
+
+          <!-- Panel: profilo azienda -->
+          <div class="dashboard-panel is-active" id="panel-profilo">
+            <div class="dashboard__content-head"><h2>Profilo azienda</h2></div>
+            <form id="profileForm">
+              <div class="field">
+                <label>Logo aziendale</label>
+                <div class="avatar-upload-preview-row">
+                  <div class="avatar-upload-preview" id="p_avatarPreview">--</div>
+                  <div style="flex:1;">
+                    <input class="input" type="file" id="p_avatarUpload" accept="image/*" />
+                    <span class="hint">Facoltativo: senza logo verranno mostrate le iniziali della ragione sociale</span>
+                  </div>
+                </div>
+              </div>
+              <div class="field">
+                <label for="p_ragioneSociale">Ragione sociale</label>
+                <input class="input" type="text" id="p_ragioneSociale" required />
+              </div>
+              <div class="form-row">
+                <div class="field">
+                  <label for="p_email">Email</label>
+                  <input class="input" type="email" id="p_email" disabled />
+                  <span class="hint">L'email non può essere modificata in questa demo</span>
+                </div>
+                <div class="field">
+                  <label for="p_settore">Settore</label>
+                  <input class="input" type="text" id="p_settore" />
+                </div>
+              </div>
+              <div class="field">
+                <label for="p_sitoWeb">Sito web</label>
+                <input class="input" type="url" id="p_sitoWeb" />
+              </div>
+              <div class="field">
+                <label for="p_bio">Descrizione azienda</label>
+                <textarea class="textarea" id="p_bio" placeholder="Presenta la tua azienda ai candidati"></textarea>
+              </div>
+              <button class="btn btn--primary" type="submit">Salva modifiche</button>
+            </form>
+          </div>
+
+          <!-- Panel: offerte pubblicate -->
+          <div class="dashboard-panel" id="panel-offerte">
+            <div class="dashboard__content-head">
+              <h2>Le mie offerte</h2>
+              <button class="btn btn--primary" id="newJobBtn" type="button">+ Pubblica offerta</button>
+            </div>
+            <div id="companyJobsList"></div>
+          </div>
+
+          <!-- Panel: candidature ricevute -->
+          <div class="dashboard-panel" id="panel-candidature">
+            <div class="dashboard__content-head">
+              <h2>Candidature ricevute</h2>
+              <select class="select" id="sortApplications" style="width: auto;">
+                <option value="data">Più recenti</option>
+                <option value="match">Più compatibili</option>
+              </select>
+            </div>
+            <div id="companyApplicationsList"></div>
+          </div>
+
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===================== MODAL CREA/MODIFICA OFFERTA ===================== -->
+  <div class="modal-overlay" id="jobModalOverlay">
+    <div class="modal">
+      <div class="modal__head">
+        <h3 id="jobModalTitle">Pubblica nuova offerta</h3>
+        <button class="modal__close" id="jobModalClose" type="button" aria-label="Chiudi">&times;</button>
+      </div>
+      <form id="jobForm">
+        <input type="hidden" id="j_id" />
+        <div class="field">
+          <label for="j_titolo">Titolo offerta</label>
+          <input class="input" type="text" id="j_titolo" required placeholder="Es. Frontend Developer" />
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="j_categoria">Categoria</label>
+            <input class="input" type="text" id="j_categoria" required placeholder="Es. Sviluppo" list="categorySuggestions" />
+            <datalist id="categorySuggestions"></datalist>
+          </div>
+          <div class="field">
+            <label for="j_localita">Località</label>
+            <div class="autocomplete-wrapper">
+              <input class="input" type="text" id="j_localita" required placeholder="Es. Milano o Remoto" />
+              <div class="autocomplete-suggestions"></div>
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="j_modalita">Modalità</label>
+            <select class="select" id="j_modalita" required>
+              <option value="In sede">In sede</option>
+              <option value="Remoto">Remoto</option>
+              <option value="Ibrido">Ibrido</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="j_tipoContratto">Tipo contratto</label>
+            <select class="select" id="j_tipoContratto" required>
+              <option value="Full-time">Full-time</option>
+              <option value="Part-time">Part-time</option>
+              <option value="Stage">Stage</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="j_stipendioMin">Stipendio minimo (€)</label>
+            <input class="input" type="number" id="j_stipendioMin" min="0" required />
+          </div>
+          <div class="field">
+            <label for="j_stipendioMax">Stipendio massimo (€)</label>
+            <input class="input" type="number" id="j_stipendioMax" min="0" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="j_retribuzioneTipo">Retribuzione</label>
+            <select class="select" id="j_retribuzioneTipo" required>
+              <option value="Lordo">Lordo</option>
+              <option value="Netto">Netto</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="j_retribuzionePeriodo">Periodo</label>
+            <select class="select" id="j_retribuzionePeriodo" required>
+              <option value="Anno">All'anno</option>
+              <option value="Mese">Al mese</option>
+              <option value="Giorno">Al giorno</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="j_descrizione">Descrizione del ruolo</label>
+          <textarea class="textarea" id="j_descrizione" required placeholder="Descrivi le responsabilità del ruolo"></textarea>
+        </div>
+        <div class="field">
+          <label for="j_requisiti">Requisiti</label>
+          <textarea class="textarea" id="j_requisiti" required placeholder="Un requisito per riga"></textarea>
+          <span class="hint">Scrivi un requisito per riga: verranno mostrati come elenco puntato</span>
+        </div>
+        <button class="btn btn--primary btn--block" type="submit" id="jobFormSubmit">Pubblica offerta</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="../js/storage.js" defer></script>
+  <script src="../js/auth.js" defer></script>
+  <script src="../js/geo.js" defer></script>
+  <script src="../js/jobs.js" defer></script>
+  <script src="../js/matching.js" defer></script>
+  <script src="../js/chat.js" defer></script>
+  <script src="../js/app.js" defer></script>
+  <script defer>
+    let currentUser = null;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      JF.App.initPage();
+      currentUser = JF.Auth.requireAuth("azienda");
+      if (!currentUser) return;
+
+      renderMiniProfile();
+      fillProfileForm();
+      renderCompanyJobs();
+      renderCompanyApplications();
+      bindSidebarNav();
+      bindProfileForm();
+      bindAvatarPreview();
+      bindJobModal();
+      populateCategorySuggestions();
+      JF.Geo.setupLocationAutocomplete(document.getElementById("j_localita"));
+      document.getElementById("sortApplications").addEventListener("change", renderCompanyApplications);
+    });
+
+    function renderMiniProfile() {
+      document.getElementById("miniAvatar").innerHTML = JF.Jobs.renderAvatarFill(currentUser);
+      document.getElementById("miniName").textContent = currentUser.ragioneSociale || "Azienda";
+      document.getElementById("miniEmail").textContent = currentUser.email;
+    }
+
+    function fillProfileForm() {
+      document.getElementById("p_ragioneSociale").value = currentUser.ragioneSociale || "";
+      document.getElementById("p_email").value = currentUser.email || "";
+      document.getElementById("p_settore").value = currentUser.settore || "";
+      document.getElementById("p_sitoWeb").value = currentUser.sitoWeb || "";
+      document.getElementById("p_bio").value = currentUser.bio || "";
+      document.getElementById("p_avatarPreview").innerHTML = JF.Jobs.renderAvatarFill(currentUser);
+    }
+
+    function readFileAsDataUrl(file) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve({ name: file.name, dataUrl: reader.result });
+        reader.readAsDataURL(file);
+      });
+    }
+
+    /** Aggiorna subito l'anteprima quando si sceglie un file, senza dover salvare prima. */
+    function bindAvatarPreview() {
+      document.getElementById("p_avatarUpload").addEventListener("change", async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const { dataUrl } = await readFileAsDataUrl(file);
+        document.getElementById("p_avatarPreview").innerHTML = `<img src="${dataUrl}" alt="" class="avatar-img-fill" />`;
+      });
+    }
+
+    function bindProfileForm() {
+      document.getElementById("profileForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const fields = {
+          ragioneSociale: document.getElementById("p_ragioneSociale").value.trim(),
+          settore: document.getElementById("p_settore").value.trim(),
+          sitoWeb: document.getElementById("p_sitoWeb").value.trim(),
+          bio: document.getElementById("p_bio").value.trim(),
+        };
+
+        const avatarInput = document.getElementById("p_avatarUpload");
+        if (avatarInput.files && avatarInput.files[0]) {
+          fields.fotoProfilo = await readFileAsDataUrl(avatarInput.files[0]);
+        }
+
+        currentUser = JF.Auth.updateCurrentUser(fields);
+        renderMiniProfile();
+        JF.App.showToast("Profilo aziendale aggiornato");
+      });
+    }
+
+    function populateCategorySuggestions() {
+      const datalist = document.getElementById("categorySuggestions");
+      datalist.innerHTML = JF.Jobs.getCategories()
+        .map((cat) => `<option value="${JF.Jobs.escapeHtml(cat)}"></option>`)
+        .join("");
+    }
+
+    // -------------------------------------------------------------------
+    // Gestione offerte (elenco + azioni modifica/elimina)
+    // -------------------------------------------------------------------
+
+    function renderCompanyJobs() {
+      const jobs = JF.Jobs.getJobsByCompany(currentUser.id);
+      const list = document.getElementById("companyJobsList");
+
+      if (jobs.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <h3>Nessuna offerta pubblicata</h3>
+            <p>Pubblica la tua prima offerta di lavoro con il pulsante qui sopra.</p>
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = jobs
+        .map((job) => {
+          const applicationsCount = JF.Storage.getApplications().filter((a) => a.jobId === job.id).length;
+          return `
+            <article class="manage-job-card">
+              <div>
+                <div class="manage-job-card__title">${JF.Jobs.escapeHtml(job.titolo)}</div>
+                <div class="manage-job-card__meta" style="margin-top: 6px;">
+                  <span class="tag">${JF.Jobs.escapeHtml(job.localita)}</span>
+                  <span class="tag tag--muted">${JF.Jobs.escapeHtml(job.tipoContratto)}</span>
+                  <span class="tag tag--muted">${applicationsCount} candidature</span>
+                </div>
+              </div>
+              <div class="manage-job-card__actions">
+                <a class="btn btn--ghost btn--sm" href="job-detail.html?id=${encodeURIComponent(job.id)}">Vedi</a>
+                <button class="btn btn--outline btn--sm" type="button" data-edit-job="${job.id}">Modifica</button>
+                <button class="btn btn--danger btn--sm" type="button" data-delete-job="${job.id}">Elimina</button>
+              </div>
+            </article>
+          `;
+        })
+        .join("");
+
+      list.querySelectorAll("[data-edit-job]").forEach((btn) => {
+        btn.addEventListener("click", () => openJobModal(btn.dataset.editJob));
+      });
+      list.querySelectorAll("[data-delete-job]").forEach((btn) => {
+        btn.addEventListener("click", () => handleDeleteJob(btn.dataset.deleteJob));
+      });
+    }
+
+    function handleDeleteJob(jobId) {
+      const job = JF.Storage.getJobById(jobId);
+      const confirmed = window.confirm(`Eliminare definitivamente l'offerta "${job ? job.titolo : ""}"?`);
+      if (!confirmed) return;
+      JF.Storage.deleteJob(jobId);
+      renderCompanyJobs();
+      JF.App.showToast("Offerta eliminata");
+    }
+
+    // -------------------------------------------------------------------
+    // Modal crea/modifica offerta
+    // -------------------------------------------------------------------
+
+    function bindJobModal() {
+      document.getElementById("newJobBtn").addEventListener("click", () => openJobModal(null));
+      document.getElementById("jobModalClose").addEventListener("click", closeJobModal);
+      document.getElementById("jobModalOverlay").addEventListener("click", (e) => {
+        if (e.target.id === "jobModalOverlay") closeJobModal();
+      });
+      document.getElementById("jobForm").addEventListener("submit", handleJobFormSubmit);
+    }
+
+    function openJobModal(jobId) {
+      const form = document.getElementById("jobForm");
+      form.reset();
+
+      const job = jobId ? JF.Storage.getJobById(jobId) : null;
+      document.getElementById("j_id").value = job ? job.id : "";
+      document.getElementById("jobModalTitle").textContent = job ? "Modifica offerta" : "Pubblica nuova offerta";
+      document.getElementById("jobFormSubmit").textContent = job ? "Salva modifiche" : "Pubblica offerta";
+
+      if (job) {
+        document.getElementById("j_titolo").value = job.titolo;
+        document.getElementById("j_categoria").value = job.categoria;
+        document.getElementById("j_localita").value = job.localita;
+        document.getElementById("j_modalita").value = job.modalita;
+        document.getElementById("j_tipoContratto").value = job.tipoContratto;
+        document.getElementById("j_stipendioMin").value = job.stipendioMin;
+        document.getElementById("j_stipendioMax").value = job.stipendioMax;
+        document.getElementById("j_retribuzioneTipo").value = job.retribuzioneTipo || "Lordo";
+        document.getElementById("j_retribuzionePeriodo").value = job.retribuzionePeriodo || "Anno";
+        document.getElementById("j_descrizione").value = job.descrizione;
+        document.getElementById("j_requisiti").value = job.requisiti.join("\n");
+      }
+
+      document.getElementById("jobModalOverlay").classList.add("is-open");
+    }
+
+    function closeJobModal() {
+      document.getElementById("jobModalOverlay").classList.remove("is-open");
+    }
+
+    function handleJobFormSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById("j_id").value;
+      const requisiti = document
+        .getElementById("j_requisiti")
+        .value.split("\n")
+        .map((r) => r.trim())
+        .filter(Boolean);
+
+      const fields = {
+        titolo: document.getElementById("j_titolo").value.trim(),
+        categoria: document.getElementById("j_categoria").value.trim(),
+        localita: document.getElementById("j_localita").value.trim(),
+        modalita: document.getElementById("j_modalita").value,
+        tipoContratto: document.getElementById("j_tipoContratto").value,
+        stipendioMin: Number(document.getElementById("j_stipendioMin").value) || 0,
+        stipendioMax: Number(document.getElementById("j_stipendioMax").value) || 0,
+        retribuzioneTipo: document.getElementById("j_retribuzioneTipo").value,
+        retribuzionePeriodo: document.getElementById("j_retribuzionePeriodo").value,
+        descrizione: document.getElementById("j_descrizione").value.trim(),
+        requisiti,
+      };
+
+      if (id) {
+        JF.Storage.updateJob(id, fields);
+        JF.App.showToast("Offerta aggiornata");
+      } else {
+        JF.Storage.addJob({
+          id: JF.Storage.generateId("job"),
+          aziendaId: currentUser.id,
+          dataPubblicazione: new Date().toISOString(),
+          stato: "attiva",
+          ...fields,
+        });
+        JF.App.showToast("Offerta pubblicata");
+      }
+
+      closeJobModal();
+      renderCompanyJobs();
+      populateCategorySuggestions();
+    }
+
+    // -------------------------------------------------------------------
+    // Candidature ricevute
+    // -------------------------------------------------------------------
+
+    function renderCompanyApplications() {
+      let applications = JF.Jobs.getApplicationsForCompany(currentUser.id);
+      const list = document.getElementById("companyApplicationsList");
+
+      if (applications.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <h3>Nessuna candidatura ricevuta</h3>
+            <p>Quando un candidato si candiderà a una tua offerta, lo vedrai comparire qui.</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Arricchisce ogni candidatura con il match ricalcolato sul profilo attuale del candidato
+      applications = applications.map((app) => ({
+        ...app,
+        liveMatch: app.job && app.candidato ? JF.Matching.computeMatch(app.candidato, app.job).score : (app.matchScore ?? 0),
+      }));
+
+      const sortMode = document.getElementById("sortApplications").value;
+      if (sortMode === "match") {
+        applications.sort((a, b) => b.liveMatch - a.liveMatch);
+      }
+
+      list.innerHTML = applications
+        .map((app) => {
+          if (!app.job || !app.candidato) return "";
+          const candidateName = `${app.candidato.nome} ${app.candidato.cognome}`.trim();
+          return `
+            <article class="application-row" style="flex-direction: column; align-items: stretch;">
+              <div class="application-row__top">
+                <div>
+                  <span class="application-row__title">${JF.Jobs.escapeHtml(candidateName)}</span>
+                  <span class="tag ${JF.Matching.scoreTagClass(app.liveMatch)}" style="margin-left:8px;">Punteggio ${app.liveMatch}</span>
+                  <p class="application-row__sub">
+                    Candidatura per <strong>${JF.Jobs.escapeHtml(app.job.titolo)}</strong> · ${JF.Jobs.formatDate(app.dataInvio)}
+                    ${app.candidato.email ? ` · ${JF.Jobs.escapeHtml(app.candidato.email)}` : ""}
+                  </p>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <a class="btn btn--ghost btn--sm" href="candidate-profile.html?id=${encodeURIComponent(app.candidatoId)}&job=${encodeURIComponent(app.jobId)}">👤 Profilo</a>
+                  ${app.cvFile ? `<a class="btn btn--ghost btn--sm" href="${app.cvFile.dataUrl}" download="${JF.Jobs.escapeHtml(app.cvFile.name)}">📄 CV</a>` : ""}
+                  ${renderMessageButton(app)}
+                  <select class="select" style="width: auto;" data-status-select="${app.id}">
+                    <option value="inviata" ${app.stato === "inviata" ? "selected" : ""}>Inviata</option>
+                    <option value="visualizzata" ${app.stato === "visualizzata" ? "selected" : ""}>Visualizzata</option>
+                    <option value="colloquio" ${app.stato === "colloquio" ? "selected" : ""}>Colloquio</option>
+                    <option value="selezionato" ${app.stato === "selezionato" ? "selected" : ""}>Selezionato</option>
+                    <option value="rifiutato" ${app.stato === "rifiutato" ? "selected" : ""}>Rifiutato</option>
+                  </select>
+                  <button class="btn btn--danger btn--sm" type="button" data-delete-application="${app.id}">Elimina</button>
+                </div>
+              </div>
+              ${app.messaggio ? `<p class="text-muted" style="font-size:0.85rem; margin-top:6px;">"${JF.Jobs.escapeHtml(app.messaggio)}"</p>` : ""}
+            </article>
+          `;
+        })
+        .join("");
+
+      list.querySelectorAll("[data-message-candidate]").forEach((btn) => {
+        btn.addEventListener("click", () => openMessageModal(btn.dataset.messageCandidate, btn.dataset.jobId));
+      });
+
+      list.querySelectorAll("[data-status-select]").forEach((select) => {
+        select.addEventListener("change", () => {
+          JF.Storage.updateApplication(select.dataset.statusSelect, { stato: select.value });
+          JF.App.showToast("Stato candidatura aggiornato");
+        });
+      });
+
+      list.querySelectorAll("[data-delete-application]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const confirmed = window.confirm("Eliminare definitivamente questa candidatura? L'operazione non è reversibile.");
+          if (!confirmed) return;
+          JF.Storage.deleteApplication(btn.dataset.deleteApplication);
+          renderCompanyApplications();
+          JF.App.showToast("Candidatura eliminata");
+        });
+      });
+    }
+
+    function renderMessageButton(app) {
+      const existing = JF.Chat.findConversation(app.candidatoId, currentUser.id);
+      if (existing) {
+        return `<a class="btn btn--outline btn--sm" href="chat.html?conv=${encodeURIComponent(existing.id)}">✉️ Chat</a>`;
+      }
+      return `<button class="btn btn--outline btn--sm" type="button" data-message-candidate="${app.candidatoId}" data-job-id="${app.jobId}">✉️ Messaggia</button>`;
+    }
+
+    function openMessageModal(candidatoId, jobId) {
+      const candidate = JF.Storage.getUserById(candidatoId);
+      const candidateName = candidate ? `${candidate.nome} ${candidate.cognome}`.trim() : "il candidato";
+      let msgAttachment = null;
+
+      const overlay = document.createElement("div");
+      overlay.className = "modal-overlay";
+      overlay.innerHTML = `
+        <div class="modal">
+          <div class="modal__head">
+            <h3>Scrivi a ${JF.Jobs.escapeHtml(candidateName)}</h3>
+            <button class="modal__close" type="button" id="msgModalClose" aria-label="Chiudi">&times;</button>
+          </div>
+          <p class="hint" style="margin-bottom:14px;">Il candidato dovrà accettare la conversazione prima di poterti rispondere.</p>
+          <form id="msgForm">
+            <div class="field">
+              <textarea class="textarea" id="msgText" placeholder="Scrivi il tuo messaggio..." style="min-height:120px;"></textarea>
+            </div>
+            <div class="field">
+              <label>Allegato (facoltativo)</label>
+              <input class="input" type="file" id="msgAttachmentInput" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg" />
+              <div id="msgAttachmentPreview"></div>
+              <span class="hint">Massimo 3MB.</span>
+            </div>
+            <button class="btn btn--primary btn--block" type="submit">Invia richiesta</button>
+          </form>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      requestAnimationFrame(() => overlay.classList.add("is-open"));
+      overlay.querySelector("#msgModalClose").addEventListener("click", () => overlay.remove());
+      overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+
+      function refreshAttachmentPreview() {
+        const container = overlay.querySelector("#msgAttachmentPreview");
+        if (!msgAttachment) { container.innerHTML = ""; return; }
+        container.innerHTML = `
+          <div class="chat-attachment-chip" style="margin: 8px 0 0;">
+            <span>📎 ${JF.Jobs.escapeHtml(msgAttachment.name)}</span>
+            <button type="button" id="msgAttachmentRemove" aria-label="Rimuovi allegato">&times;</button>
+          </div>
+        `;
+        container.querySelector("#msgAttachmentRemove").addEventListener("click", () => {
+          msgAttachment = null;
+          overlay.querySelector("#msgAttachmentInput").value = "";
+          refreshAttachmentPreview();
+        });
+      }
+
+      overlay.querySelector("#msgAttachmentInput").addEventListener("change", (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        if (file.size > 3 * 1024 * 1024) {
+          JF.App.showToast("Il file è troppo grande: massimo 3MB in questa demo", "error");
+          e.target.value = "";
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          msgAttachment = { name: file.name, dataUrl: reader.result, size: file.size };
+          refreshAttachmentPreview();
+        };
+        reader.readAsDataURL(file);
+      });
+
+      overlay.querySelector("#msgForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const testo = document.getElementById("msgText").value;
+        const result = JF.Chat.startConversation(currentUser, candidatoId, testo, jobId, msgAttachment);
+        if (!result.ok) {
+          JF.App.showToast(result.error, "error");
+          return;
+        }
+        window.location.href = `chat.html?conv=${encodeURIComponent(result.conversation.id)}`;
+      });
+    }
+
+    function bindSidebarNav() {
+      const buttons = document.querySelectorAll(".sidebar-nav button");
+      buttons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          buttons.forEach((b) => b.classList.remove("is-active"));
+          btn.classList.add("is-active");
+
+          document.querySelectorAll(".dashboard-panel").forEach((panel) => panel.classList.remove("is-active"));
+          document.getElementById(`panel-${btn.dataset.panel}`).classList.add("is-active");
+        });
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registrati — JobFinder</title>
+  <link rel="icon" type="image/x-icon" href="../assets/images/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/images/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="../assets/images/favicon-16.png" />
+  <link rel="apple-touch-icon" href="../assets/images/apple-touch-icon.png" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+  <div id="navbar-root" data-base-path="../"></div>
+
+  <main class="auth-shell">
+    <div class="auth-card" style="max-width: 520px;">
+      <div class="auth-card__head">
+        <h1>Crea il tuo account</h1>
+        <p>Scegli il tipo di profilo che vuoi creare</p>
+      </div>
+
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab is-active" id="tabCandidato" data-tab="candidato">Sono un candidato</button>
+        <button type="button" class="auth-tab" id="tabAzienda" data-tab="azienda">Sono un'azienda</button>
+      </div>
+
+      <div class="form-alert" id="registerAlert"></div>
+
+      <!-- Form candidato -->
+      <form id="formCandidato" novalidate>
+        <div class="form-row">
+          <div class="field">
+            <label for="c_nome">Nome</label>
+            <input class="input" type="text" id="c_nome" required />
+          </div>
+          <div class="field">
+            <label for="c_cognome">Cognome</label>
+            <input class="input" type="text" id="c_cognome" required />
+          </div>
+        </div>
+        <div class="field">
+          <label for="c_email">Email</label>
+          <input class="input" type="email" id="c_email" required autocomplete="email" />
+        </div>
+        <div class="field">
+          <label for="c_password">Password</label>
+          <input class="input" type="password" id="c_password" required autocomplete="new-password" />
+          <span class="hint">Almeno 6 caratteri</span>
+        </div>
+        <div class="field">
+          <label for="c_telefono">Telefono</label>
+          <input class="input" type="tel" id="c_telefono" placeholder="Facoltativo" />
+        </div>
+        <p class="hint" style="margin-bottom: 16px;">Potrai aggiungere competenze, presentazione e CV dalla tua area personale dopo la registrazione.</p>
+        <button class="btn btn--primary btn--block" type="submit">Crea profilo candidato</button>
+      </form>
+
+      <!-- Form azienda -->
+      <form id="formAzienda" novalidate style="display: none;">
+        <div class="field">
+          <label for="a_ragioneSociale">Ragione sociale</label>
+          <input class="input" type="text" id="a_ragioneSociale" required />
+        </div>
+        <div class="field">
+          <label for="a_email">Email aziendale</label>
+          <input class="input" type="email" id="a_email" required autocomplete="email" />
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="a_password">Password</label>
+            <input class="input" type="password" id="a_password" required autocomplete="new-password" />
+            <span class="hint">Almeno 6 caratteri</span>
+          </div>
+          <div class="field">
+            <label for="a_settore">Settore</label>
+            <input class="input" type="text" id="a_settore" placeholder="Es. Tecnologia" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="a_sitoWeb">Sito web</label>
+          <input class="input" type="url" id="a_sitoWeb" placeholder="Facoltativo" />
+        </div>
+        <div class="field">
+          <label for="a_bio">Descrizione azienda</label>
+          <textarea class="textarea" id="a_bio" placeholder="Presenta la tua azienda ai candidati (facoltativo)"></textarea>
+        </div>
+        <button class="btn btn--primary btn--block" type="submit">Crea profilo azienda</button>
+      </form>
+
+      <p class="auth-card__footer">
+        Hai già un account? <a href="login.html">Accedi</a>
+      </p>
+    </div>
+  </main>
+
+  <script src="../js/storage.js" defer></script>
+  <script src="../js/auth.js" defer></script>
+  <script src="../js/geo.js" defer></script>
+  <script src="../js/jobs.js" defer></script>
+  <script src="../js/matching.js" defer></script>
+  <script src="../js/chat.js" defer></script>
+  <script src="../js/app.js" defer></script>
+  <script defer>
+    document.addEventListener("DOMContentLoaded", () => {
+      JF.App.initPage();
+
+      const current = JF.Auth.getCurrentUser();
+      if (current) {
+        window.location.href = current.tipo === "azienda" ? "dashboard-company.html" : "dashboard-user.html";
+        return;
+      }
+
+      bindTabs();
+      bindCandidatoForm();
+      bindAziendaForm();
+    });
+
+    function bindTabs() {
+      const tabCandidato = document.getElementById("tabCandidato");
+      const tabAzienda = document.getElementById("tabAzienda");
+      const formCandidato = document.getElementById("formCandidato");
+      const formAzienda = document.getElementById("formAzienda");
+      const alertBox = document.getElementById("registerAlert");
+
+      tabCandidato.addEventListener("click", () => {
+        tabCandidato.classList.add("is-active");
+        tabAzienda.classList.remove("is-active");
+        formCandidato.style.display = "block";
+        formAzienda.style.display = "none";
+        alertBox.classList.remove("is-visible");
+      });
+
+      tabAzienda.addEventListener("click", () => {
+        tabAzienda.classList.add("is-active");
+        tabCandidato.classList.remove("is-active");
+        formAzienda.style.display = "block";
+        formCandidato.style.display = "none";
+        alertBox.classList.remove("is-visible");
+      });
+    }
+
+    function showError(message) {
+      const alertBox = document.getElementById("registerAlert");
+      alertBox.textContent = message;
+      alertBox.classList.add("is-visible");
+    }
+
+    function bindCandidatoForm() {
+      document.getElementById("formCandidato").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const data = {
+          nome: document.getElementById("c_nome").value.trim(),
+          cognome: document.getElementById("c_cognome").value.trim(),
+          email: document.getElementById("c_email").value.trim(),
+          password: document.getElementById("c_password").value,
+          telefono: document.getElementById("c_telefono").value.trim(),
+        };
+        const result = JF.Auth.register("candidato", data);
+        if (!result.ok) return showError(result.error);
+        window.location.href = "dashboard-user.html";
+      });
+    }
+
+    function bindAziendaForm() {
+      document.getElementById("formAzienda").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const data = {
+          ragioneSociale: document.getElementById("a_ragioneSociale").value.trim(),
+          email: document.getElementById("a_email").value.trim(),
+          password: document.getElementById("a_password").value,
+          settore: document.getElementById("a_settore").value.trim(),
+          sitoWeb: document.getElementById("a_sitoWeb").value.trim(),
+          bio: document.getElementById("a_bio").value.trim(),
+        };
+        const result = JF.Auth.register("azienda", data);
+        if (!result.ok) return showError(result.error);
+        window.location.href = "dashboard-company.html";
+      });
+    }
+  </script>
+</body>
+</html>

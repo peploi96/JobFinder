@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title id="pageTitle">Offerta di lavoro — JobFinder</title>
+  <link rel="icon" type="image/x-icon" href="../assets/images/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/images/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="../assets/images/favicon-16.png" />
+  <link rel="apple-touch-icon" href="../assets/images/apple-touch-icon.png" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <!-- Leaflet (mappa interattiva basata su OpenStreetMap) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+
+  <div id="navbar-root" data-base-path="../"></div>
+
+  <div id="jobContent">
+    <!-- popolato via JS; se l'id non esiste, mostriamo un messaggio -->
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+  <script src="../js/storage.js" defer></script>
+  <script src="../js/auth.js" defer></script>
+  <script src="../js/geo.js" defer></script>
+  <script src="../js/jobs.js" defer></script>
+  <script src="../js/matching.js" defer></script>
+  <script src="../js/chat.js" defer></script>
+  <script src="../js/app.js" defer></script>
+  <script defer>
+    document.addEventListener("DOMContentLoaded", () => {
+      JF.App.initPage();
+      renderJobDetail();
+    });
+
+    function renderJobDetail() {
+      const params = new URLSearchParams(window.location.search);
+      const jobId = params.get("id");
+      const job = jobId ? JF.Storage.getJobById(jobId) : null;
+      const container = document.getElementById("jobContent");
+
+      if (!job) {
+        container.innerHTML = `
+          <div class="container" style="padding: 60px 0;">
+            <div class="empty-state">
+              <h3>Offerta non trovata</h3>
+              <p>L'annuncio che cerchi potrebbe essere stato rimosso.</p>
+              <br />
+              <a class="btn btn--primary" href="jobs.html">Torna alle offerte</a>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      document.getElementById("pageTitle").textContent = `${job.titolo} — JobFinder`;
+
+      const company = JF.Storage.getUserById(job.aziendaId);
+      const companyName = company ? company.ragioneSociale : "Azienda";
+      const currentUser = JF.Auth.getCurrentUser();
+      const isCandidate = currentUser && currentUser.tipo === "candidato";
+      const isFav = JF.Jobs.isFavorite(currentUser, job.id);
+      const alreadyApplied = isCandidate ? JF.Jobs.hasApplied(job.id, currentUser.id) : false;
+      const match = isCandidate ? JF.Matching.computeMatch(currentUser, job) : null;
+
+      container.innerHTML = `
+        <header class="job-detail-header">
+          <div class="container">
+            <a href="jobs.html" class="text-muted" style="font-size: 0.85rem; display: inline-block; margin-bottom: 18px;">&larr; Torna alle offerte</a>
+            <div class="job-detail-header__top">
+              ${JF.Jobs.renderAvatar(company, "job-detail-header__logo")}
+              <div>
+                <h1 class="job-detail-header__title">${JF.Jobs.escapeHtml(job.titolo)}</h1>
+                <p class="job-detail-header__company"><a href="company-profile.html?id=${encodeURIComponent(job.aziendaId)}">${JF.Jobs.escapeHtml(companyName)}</a> · ${JF.Jobs.escapeHtml(job.localita)}</p>
+              </div>
+            </div>
+            <div class="job-detail-header__meta">
+              <span class="tag">${JF.Jobs.escapeHtml(job.tipoContratto)}</span>
+              <span class="tag tag--muted">${JF.Jobs.escapeHtml(job.modalita)}</span>
+              <span class="tag tag--muted">${JF.Jobs.escapeHtml(job.categoria)}</span>
+              <span class="tag tag--muted">Pubblicata ${JF.Jobs.formatDate(job.dataPubblicazione)}</span>
+            </div>
+            <div class="job-detail-header__actions">
+              <button class="btn ${alreadyApplied ? "btn--ghost" : "btn--primary"}" id="applyBtn" type="button" ${alreadyApplied ? "disabled" : ""}>
+                ${alreadyApplied ? "Candidatura già inviata" : "Candidati ora"}
+              </button>
+              <button class="btn btn--outline" id="favBtn" type="button">
+                ${isFav ? "★ Salvata nei preferiti" : "☆ Salva nei preferiti"}
+              </button>
+              ${isCandidate ? renderContactButton(job) : ""}
+            </div>
+          </div>
+        </header>
+
+        <div class="container job-detail-body">
+          <div class="job-detail-grid">
+            <div>
+              ${alreadyApplied ? renderApplicationStatusBlock(job, currentUser) : ""}
+              <div class="job-detail-block">
+                <h2>Descrizione del ruolo</h2>
+                <p>${JF.Jobs.escapeHtml(job.descrizione)}</p>
+              </div>
+              <div class="job-detail-block">
+                <h2>Requisiti</h2>
+                <ul>
+                  ${job.requisiti.map((r) => `<li>${JF.Jobs.escapeHtml(r)}</li>`).join("")}
+                </ul>
+              </div>
+            </div>
+            <aside>
+              ${match ? renderMatchBox(match) : ""}
+              <div style="margin-bottom: 18px;">
+                <h3 style="font-size:0.95rem; color: var(--color-ink); margin-bottom:10px;">Dove si trova</h3>
+                <div id="jobMap" class="job-map"></div>
+              </div>
+              <div class="job-detail-aside" style="margin-bottom: 18px;">
+                <h3>Riepilogo offerta</h3>
+                <p><strong>Stipendio:</strong> ${JF.Jobs.formatSalary(job)}</p>
+                <p><strong>Località:</strong> ${JF.Jobs.escapeHtml(job.localita)}</p>
+                <p><strong>Modalità:</strong> ${JF.Jobs.escapeHtml(job.modalita)}</p>
+                <p><strong>Contratto:</strong> ${JF.Jobs.escapeHtml(job.tipoContratto)}</p>
+              </div>
+              <div class="job-detail-aside">
+                <h3>Azienda</h3>
+                <p><strong>${JF.Jobs.escapeHtml(companyName)}</strong></p>
+                ${company && company.settore ? `<p>${JF.Jobs.escapeHtml(company.settore)}</p>` : ""}
+                ${company && company.bio ? `<p>${JF.Jobs.escapeHtml(company.bio)}</p>` : ""}
+                <a class="btn btn--ghost btn--sm" style="margin-top: 8px;" href="company-profile.html?id=${encodeURIComponent(job.aziendaId)}">Vedi profilo azienda</a>
+              </div>
+            </aside>
+          </div>
+        </div>
+      `;
+
+      bindActions(job);
+      renderJobMap(job);
+    }
+
+    // Riferimento all'istanza Leaflet corrente, per poterla distruggere quando la pagina si ri-renderizza
+    let leafletMapInstance = null;
+
+    /**
+     * Inizializza la mappa interattiva della sede dell'offerta: geocodifica la
+     * città (con cache condivisa da JF.Geo) e mostra un pin nella posizione
+     * corrispondente. Nessuna coordinata viene mai mostrata come testo: la
+     * mappa è puramente visiva.
+     */
+    async function renderJobMap(job) {
+      const mapEl = document.getElementById("jobMap");
+      if (!mapEl) return;
+
+      if (leafletMapInstance) {
+        try { leafletMapInstance.remove(); } catch (err) { /* nodo già sostituito, ignoriamo */ }
+        leafletMapInstance = null;
+      }
+
+      const isRemote = !job.localita || job.localita.trim().toLowerCase() === "remoto";
+      if (isRemote) {
+        mapEl.innerHTML = `<div class="job-map-unavailable">Offerta da remoto: nessuna sede fisica da mostrare in mappa.</div>`;
+        return;
+      }
+
+      mapEl.innerHTML = `<div class="job-map-unavailable">Caricamento mappa...</div>`;
+      const coords = await JF.Geo.geocodeCity(job.localita);
+
+      // La pagina potrebbe essere stata ri-renderizzata nel frattempo (es. click su "Salva"):
+      // se il contenitore non esiste più non proseguiamo.
+      if (!document.body.contains(mapEl)) return;
+
+      if (!coords || typeof L === "undefined") {
+        mapEl.innerHTML = `<div class="job-map-unavailable">Mappa non disponibile al momento.</div>`;
+        return;
+      }
+
+      mapEl.innerHTML = "";
+      leafletMapInstance = L.map(mapEl).setView([coords.lat, coords.lon], 12);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 18,
+      }).addTo(leafletMapInstance);
+
+      L.marker([coords.lat, coords.lon])
+        .addTo(leafletMapInstance)
+        .bindPopup(JF.Jobs.escapeHtml(job.localita));
+    }
+
+    /** Box con punteggio di compatibilità e competenze abbinate (solo candidati loggati con competenze impostate). */
+    function renderMatchBox(match) {
+      if (!match.hasSkills) {
+        return `
+          <div class="match-box match-box--mid">
+            <p style="font-size:0.85rem; color: var(--color-ink);">Aggiungi le tue competenze nel <a href="dashboard-user.html">tuo profilo</a> per vedere il punteggio di compatibilità con questa offerta.</p>
+          </div>
+        `;
+      }
+      const level = match.score >= 3 ? "high" : match.score >= 1 ? "mid" : "low";
+      return `
+        <div class="match-box match-box--${level}">
+          <div class="match-box__score">Punteggio ${match.score}</div>
+          <p style="font-size:0.78rem; color: var(--color-text-muted); margin-bottom:8px;">
+            +1 punto per ogni tua competenza trovata nella descrizione o nei requisiti dell'offerta (${match.totalSkills} competenze nel tuo profilo)
+          </p>
+          ${
+            match.matchedSkills.length > 0
+              ? `<p style="font-size:0.82rem; color: var(--color-text-muted); margin-bottom:6px;">Competenze abbinate:</p>
+                 <div class="match-box__skills">${match.matchedSkills.map((s) => `<span class="tag tag--success">${JF.Jobs.escapeHtml(s)}</span>`).join("")}</div>`
+              : `<p style="font-size:0.82rem; color: var(--color-text-muted);">Nessuna delle tue competenze compare in questa offerta.</p>`
+          }
+        </div>
+      `;
+    }
+
+    /** Se il candidato si è già candidato, mostra lo stato/timeline in cima alla pagina. */
+    function renderApplicationStatusBlock(job, currentUser) {
+      const applications = JF.Jobs.getApplicationsForCandidate(currentUser.id);
+      const app = applications.find((a) => a.jobId === job.id);
+      if (!app) return "";
+      return `
+        <div class="job-detail-block" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 18px;">
+          <h2>Stato della tua candidatura</h2>
+          ${JF.Jobs.renderApplicationTimeline(app.stato)}
+        </div>
+      `;
+    }
+
+    /** Bottone per contattare l'azienda: link diretto alla chat se la conversazione esiste già, altrimenti apre il compositore del primo messaggio. */
+    function renderContactButton(job) {
+      const existing = JF.Chat.findConversation(JF.Auth.getCurrentUser().id, job.aziendaId);
+      if (existing) {
+        return `<a class="btn btn--outline" href="chat.html?conv=${encodeURIComponent(existing.id)}">✉️ Vai alla chat</a>`;
+      }
+      return `<button class="btn btn--outline" id="contactBtn" type="button">✉️ Contatta azienda</button>`;
+    }
+
+    function bindActions(job) {
+      document.getElementById("applyBtn").addEventListener("click", () => openApplyModal(job));
+      document.getElementById("favBtn").addEventListener("click", () => handleFavorite(job));
+      const contactBtn = document.getElementById("contactBtn");
+      if (contactBtn) contactBtn.addEventListener("click", () => openContactModal(job));
+    }
+
+    /** Modal per scrivere il primo messaggio all'azienda: avvia una richiesta di conversazione. */
+    function openContactModal(job) {
+      const user = JF.Auth.getCurrentUser();
+      if (!user || user.tipo !== "candidato") {
+        JF.App.showToast("Accedi come candidato per contattare un'azienda", "error");
+        return;
+      }
+
+      let contactAttachment = null;
+
+      const overlay = document.createElement("div");
+      overlay.className = "modal-overlay";
+      overlay.innerHTML = `
+        <div class="modal">
+          <div class="modal__head">
+            <h3>Scrivi a ${JF.Jobs.escapeHtml(JF.Storage.getUserById(job.aziendaId)?.ragioneSociale || "azienda")}</h3>
+            <button class="modal__close" type="button" id="contactModalClose" aria-label="Chiudi">&times;</button>
+          </div>
+          <p class="hint" style="margin-bottom:14px;">L'azienda dovrà accettare la conversazione prima di poterti rispondere.</p>
+          <form id="contactForm">
+            <div class="field">
+              <textarea class="textarea" id="contactMessage" placeholder="Scrivi il tuo messaggio..." style="min-height:120px;"></textarea>
+            </div>
+            <div class="field">
+              <label>Allegato (facoltativo)</label>
+              ${
+                user.cvFile
+                  ? `<button type="button" class="btn btn--ghost btn--sm" id="useProfileCvBtn" style="margin-bottom:8px;">📄 Usa il CV dal profilo (${JF.Jobs.escapeHtml(user.cvFile.name)})</button>`
+                  : ""
+              }
+              <input class="input" type="file" id="contactAttachmentInput" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg" />
+              <div id="contactAttachmentPreview"></div>
+              <span class="hint">Utile per condividere subito il tuo CV. Massimo 3MB.</span>
+            </div>
+            <button class="btn btn--primary btn--block" type="submit">Invia richiesta</button>
+          </form>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      requestAnimationFrame(() => overlay.classList.add("is-open"));
+      overlay.querySelector("#contactModalClose").addEventListener("click", () => overlay.remove());
+      overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+
+      function refreshAttachmentPreview() {
+        const container = overlay.querySelector("#contactAttachmentPreview");
+        if (!contactAttachment) { container.innerHTML = ""; return; }
+        container.innerHTML = `
+          <div class="chat-attachment-chip" style="margin: 8px 0 0;">
+            <span>📎 ${JF.Jobs.escapeHtml(contactAttachment.name)}</span>
+            <button type="button" id="contactAttachmentRemove" aria-label="Rimuovi allegato">&times;</button>
+          </div>
+        `;
+        container.querySelector("#contactAttachmentRemove").addEventListener("click", () => {
+          contactAttachment = null;
+          overlay.querySelector("#contactAttachmentInput").value = "";
+          refreshAttachmentPreview();
+        });
+      }
+
+      const useCvBtn = overlay.querySelector("#useProfileCvBtn");
+      if (useCvBtn) {
+        useCvBtn.addEventListener("click", () => {
+          contactAttachment = user.cvFile;
+          overlay.querySelector("#contactAttachmentInput").value = "";
+          refreshAttachmentPreview();
+        });
+      }
+
+      overlay.querySelector("#contactAttachmentInput").addEventListener("change", (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        if (file.size > 3 * 1024 * 1024) {
+          JF.App.showToast("Il file è troppo grande: massimo 3MB in questa demo", "error");
+          e.target.value = "";
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          contactAttachment = { name: file.name, dataUrl: reader.result, size: file.size };
+          refreshAttachmentPreview();
+        };
+        reader.readAsDataURL(file);
+      });
+
+      overlay.querySelector("#contactForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const testo = document.getElementById("contactMessage").value;
+        const result = JF.Chat.startConversation(user, job.aziendaId, testo, job.id, contactAttachment);
+        if (!result.ok) {
+          JF.App.showToast(result.error, "error");
+          return;
+        }
+        window.location.href = `chat.html?conv=${encodeURIComponent(result.conversation.id)}`;
+      });
+    }
+
+    // -------------------------------------------------------------------
+    // Modal di candidatura: lettera motivazionale + scelta del CV
+    // -------------------------------------------------------------------
+
+    function openApplyModal(job) {
+      const user = JF.Auth.getCurrentUser();
+      if (!user) {
+        JF.App.showToast("Accedi come candidato per inviare una candidatura", "error");
+        setTimeout(() => (window.location.href = "login.html"), 900);
+        return;
+      }
+      if (user.tipo !== "candidato") {
+        JF.App.showToast("Solo un profilo candidato può candidarsi a un'offerta", "error");
+        return;
+      }
+      if (JF.Jobs.hasApplied(job.id, user.id)) return;
+
+      const hasProfileCv = !!user.cvFile;
+      const overlay = document.createElement("div");
+      overlay.className = "modal-overlay";
+      overlay.id = "applyModalOverlay";
+      overlay.innerHTML = `
+        <div class="modal">
+          <div class="modal__head">
+            <h3>Candidati per "${JF.Jobs.escapeHtml(job.titolo)}"</h3>
+            <button class="modal__close" type="button" id="applyModalClose" aria-label="Chiudi">&times;</button>
+          </div>
+          <form id="applyForm">
+            <div class="field">
+              <label>CV allegato</label>
+              ${
+                hasProfileCv
+                  ? `<div class="tag tag--success">📄 ${JF.Jobs.escapeHtml(user.cvFile.name)}</div>
+                     <span class="hint">Verrà inviato il CV caricato nel tuo profilo</span>`
+                  : `<p class="hint">Non hai ancora caricato un CV nel tuo profilo. Puoi comunque inviare la candidatura, oppure <a href="dashboard-user.html">caricalo ora</a> per aumentare le tue possibilità.</p>`
+              }
+            </div>
+            <div class="field">
+              <label for="applyLettera">Lettera motivazionale</label>
+              <textarea class="textarea" id="applyLettera" placeholder="Racconta perché sei la persona giusta per questo ruolo" style="min-height:140px;"></textarea>
+            </div>
+            <button class="btn btn--primary btn--block" type="submit">Invia candidatura</button>
+          </form>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      requestAnimationFrame(() => overlay.classList.add("is-open"));
+
+      overlay.querySelector("#applyModalClose").addEventListener("click", () => overlay.remove());
+      overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+
+      overlay.querySelector("#applyForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const messaggio = document.getElementById("applyLettera").value.trim();
+        submitApplication(job, user, messaggio, user.cvFile || null);
+        overlay.remove();
+      });
+    }
+
+    function submitApplication(job, user, messaggio, cvFile) {
+      const result = JF.Jobs.applyToJob(job.id, user.id, { messaggio, cvFile });
+      if (!result.ok) {
+        JF.App.showToast(result.error, "error");
+        return;
+      }
+      JF.App.showToast("Candidatura inviata con successo!");
+      renderJobDetail();
+    }
+
+    function handleFavorite(job) {
+      const user = JF.Auth.getCurrentUser();
+      if (!user || user.tipo !== "candidato") {
+        JF.App.showToast("Accedi come candidato per salvare le offerte", "error");
+        return;
+      }
+      JF.Jobs.toggleFavorite(user.id, job.id);
+      renderJobDetail();
+    }
+  </script>
+</body>
+</html>

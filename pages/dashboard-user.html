@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>La mia area — JobFinder</title>
+  <link rel="icon" type="image/x-icon" href="../assets/images/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/images/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="../assets/images/favicon-16.png" />
+  <link rel="apple-touch-icon" href="../assets/images/apple-touch-icon.png" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+  <div id="navbar-root" data-base-path="../"></div>
+
+  <main class="dashboard">
+    <div class="container">
+      <div class="dashboard__grid">
+
+        <!-- ===================== SIDEBAR ===================== -->
+        <aside class="dashboard__sidebar">
+          <div class="dashboard__profile-mini">
+            <div class="dashboard__avatar" id="miniAvatar">--</div>
+            <div>
+              <strong id="miniName">—</strong>
+              <span id="miniEmail">—</span>
+            </div>
+          </div>
+          <nav class="sidebar-nav">
+            <button type="button" class="is-active" data-panel="profilo">👤 Il mio profilo</button>
+            <button type="button" data-panel="compatibili">✨ Offerte compatibili</button>
+            <button type="button" data-panel="preferiti">♥ Offerte salvate</button>
+            <button type="button" data-panel="candidature">📄 Le mie candidature</button>
+          </nav>
+        </aside>
+
+        <!-- ===================== CONTENUTO ===================== -->
+        <section class="dashboard__content">
+
+          <!-- Panel: profilo -->
+          <div class="dashboard-panel is-active" id="panel-profilo">
+            <div class="dashboard__content-head"><h2>Il mio profilo</h2></div>
+            <form id="profileForm">
+              <div class="field">
+                <label>Foto profilo</label>
+                <div class="avatar-upload-preview-row">
+                  <div class="avatar-upload-preview" id="p_avatarPreview">--</div>
+                  <div style="flex:1;">
+                    <input class="input" type="file" id="p_avatarUpload" accept="image/*" />
+                    <span class="hint">Facoltativa: senza foto verranno mostrate le tue iniziali</span>
+                  </div>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="field">
+                  <label for="p_nome">Nome</label>
+                  <input class="input" type="text" id="p_nome" required />
+                </div>
+                <div class="field">
+                  <label for="p_cognome">Cognome</label>
+                  <input class="input" type="text" id="p_cognome" required />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="field">
+                  <label for="p_email">Email</label>
+                  <input class="input" type="email" id="p_email" disabled />
+                  <span class="hint">L'email non può essere modificata in questa demo</span>
+                </div>
+                <div class="field">
+                  <label for="p_telefono">Telefono</label>
+                  <input class="input" type="tel" id="p_telefono" />
+                </div>
+              </div>
+              <div class="field">
+                <label for="p_competenze">Competenze</label>
+                <input class="input" type="text" id="p_competenze" placeholder="Es. JavaScript, React, Figma" />
+                <span class="hint">Separale con una virgola: sono la base del calcolo di compatibilità con le offerte</span>
+              </div>
+              <div class="field">
+                <label for="p_bio">Presentazione breve</label>
+                <textarea class="textarea" id="p_bio" placeholder="Racconta la tua esperienza professionale"></textarea>
+              </div>
+              <div class="field">
+                <label for="p_cvUpload">Carica CV</label>
+                <input class="input" type="file" id="p_cvUpload" accept=".pdf,.doc,.docx,.txt" />
+                <span class="hint" id="p_cvCurrent">Nessun CV caricato</span>
+              </div>
+              <button class="btn btn--primary" type="submit">Salva modifiche</button>
+            </form>
+          </div>
+
+          <!-- Panel: offerte compatibili -->
+          <div class="dashboard-panel" id="panel-compatibili">
+            <div class="dashboard__content-head">
+              <h2>Offerte compatibili</h2>
+            </div>
+            <p class="text-muted" id="compatibleSummary" style="margin-bottom: 16px;"></p>
+            <div class="jobs-grid" id="compatibleGrid"></div>
+          </div>
+
+          <!-- Panel: preferiti -->
+          <div class="dashboard-panel" id="panel-preferiti">
+            <div class="dashboard__content-head"><h2>Offerte salvate</h2></div>
+            <div class="jobs-grid" id="favoritesGrid"></div>
+          </div>
+
+          <!-- Panel: candidature -->
+          <div class="dashboard-panel" id="panel-candidature">
+            <div class="dashboard__content-head"><h2>Le mie candidature</h2></div>
+            <div id="applicationsList"></div>
+          </div>
+
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script src="../js/storage.js" defer></script>
+  <script src="../js/auth.js" defer></script>
+  <script src="../js/geo.js" defer></script>
+  <script src="../js/jobs.js" defer></script>
+  <script src="../js/matching.js" defer></script>
+  <script src="../js/chat.js" defer></script>
+  <script src="../js/app.js" defer></script>
+  <script defer>
+    let currentUser = null;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      JF.App.initPage();
+      currentUser = JF.Auth.requireAuth("candidato");
+      if (!currentUser) return; // requireAuth ha già reindirizzato al login
+
+      renderMiniProfile();
+      fillProfileForm();
+      renderCompatibleJobs();
+      renderFavorites();
+      renderApplications();
+      bindSidebarNav();
+      bindProfileForm();
+      bindAvatarPreview();
+
+      // Se un'offerta viene aggiunta/rimossa dai preferiti altrove (es. non qui),
+      // teniamo comunque il pannello aggiornato quando l'utente ci torna sopra.
+      document.addEventListener("jf:favorites-changed", renderFavorites);
+    });
+
+    function renderMiniProfile() {
+      document.getElementById("miniAvatar").innerHTML = JF.Jobs.renderAvatarFill(currentUser);
+      document.getElementById("miniName").textContent = `${currentUser.nome} ${currentUser.cognome}`.trim() || "Candidato";
+      document.getElementById("miniEmail").textContent = currentUser.email;
+    }
+
+    function fillProfileForm() {
+      document.getElementById("p_nome").value = currentUser.nome || "";
+      document.getElementById("p_cognome").value = currentUser.cognome || "";
+      document.getElementById("p_email").value = currentUser.email || "";
+      document.getElementById("p_telefono").value = currentUser.telefono || "";
+      document.getElementById("p_competenze").value = (currentUser.competenze || []).join(", ");
+      document.getElementById("p_bio").value = currentUser.bio || "";
+      document.getElementById("p_cvCurrent").textContent = currentUser.cvFile
+        ? `CV attuale: ${currentUser.cvFile.name}`
+        : "Nessun CV caricato";
+      document.getElementById("p_avatarPreview").innerHTML = JF.Jobs.renderAvatarFill(currentUser);
+    }
+
+    function readFileAsDataUrl(file) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve({ name: file.name, dataUrl: reader.result });
+        reader.readAsDataURL(file);
+      });
+    }
+
+    /** Aggiorna subito l'anteprima quando si sceglie un file, senza dover salvare prima. */
+    function bindAvatarPreview() {
+      document.getElementById("p_avatarUpload").addEventListener("change", async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const { dataUrl } = await readFileAsDataUrl(file);
+        document.getElementById("p_avatarPreview").innerHTML = `<img src="${dataUrl}" alt="" class="avatar-img-fill" />`;
+      });
+    }
+
+    function bindProfileForm() {
+      document.getElementById("profileForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const fields = {
+          nome: document.getElementById("p_nome").value.trim(),
+          cognome: document.getElementById("p_cognome").value.trim(),
+          telefono: document.getElementById("p_telefono").value.trim(),
+          competenze: document.getElementById("p_competenze").value.split(",").map((s) => s.trim()).filter(Boolean),
+          bio: document.getElementById("p_bio").value.trim(),
+        };
+
+        const cvInput = document.getElementById("p_cvUpload");
+        if (cvInput.files && cvInput.files[0]) {
+          fields.cvFile = await readFileAsDataUrl(cvInput.files[0]);
+        }
+
+        const avatarInput = document.getElementById("p_avatarUpload");
+        if (avatarInput.files && avatarInput.files[0]) {
+          fields.fotoProfilo = await readFileAsDataUrl(avatarInput.files[0]);
+        }
+
+        currentUser = JF.Auth.updateCurrentUser(fields);
+        renderMiniProfile();
+        fillProfileForm();
+        renderCompatibleJobs(); // le competenze sono cambiate: ricalcola i match
+        JF.App.showToast("Profilo aggiornato con successo");
+      });
+    }
+
+    function renderCompatibleJobs() {
+      const compatible = JF.Matching.getCompatibleJobs(currentUser, 1);
+      const summary = document.getElementById("compatibleSummary");
+      const grid = document.getElementById("compatibleGrid");
+
+      summary.textContent =
+        compatible.length > 0
+          ? `Hai ${compatible.length} offerte compatibili disponibili in base alle tue competenze.`
+          : "Nessuna offerta compatibile al momento: aggiungi le tue competenze al profilo per trovare le offerte più adatte.";
+
+      if (compatible.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state" style="grid-column: 1 / -1;">
+            <h3>Nessun match trovato</h3>
+            <p>Aggiorna le tue competenze nel profilo per trovare offerte compatibili.</p>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = compatible
+        .map(({ job, match }) =>
+          JF.Jobs.renderJobCard(job, { basePath: "", favorited: JF.Jobs.isFavorite(currentUser, job.id), matchScore: match.score })
+        )
+        .join("");
+    }
+
+    function renderFavorites() {
+      currentUser = JF.Auth.getCurrentUser(); // dati freschi (i preferiti possono essere cambiati)
+      const jobs = JF.Jobs.getFavoriteJobs(currentUser);
+      const grid = document.getElementById("favoritesGrid");
+
+      if (jobs.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state" style="grid-column: 1 / -1;">
+            <h3>Nessuna offerta salvata</h3>
+            <p>Salva le offerte che ti interessano dal pulsante ♡ per ritrovarle qui.</p>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = jobs
+        .map((job) => JF.Jobs.renderJobCard(job, { basePath: "", favorited: true }))
+        .join("");
+    }
+
+    function renderApplications() {
+      const applications = JF.Jobs.getApplicationsForCandidate(currentUser.id);
+      const list = document.getElementById("applicationsList");
+
+      if (applications.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <h3>Nessuna candidatura inviata</h3>
+            <p>Le candidature che invii alle offerte compariranno qui con il loro stato.</p>
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = applications
+        .map((app) => {
+          if (!app.job) return ""; // l'offerta potrebbe essere stata eliminata dall'azienda
+          const company = JF.Storage.getUserById(app.job.aziendaId);
+
+          return `
+            <article class="application-row" style="flex-direction: column; align-items: stretch;">
+              <div class="application-row__top">
+                <div>
+                  <span class="application-row__title">${JF.Jobs.escapeHtml(app.job.titolo)}</span>
+                  <p class="application-row__sub">${JF.Jobs.escapeHtml(company ? company.ragioneSociale : "Azienda")} · Candidatura inviata ${JF.Jobs.formatDate(app.dataInvio)}${app.matchScore !== null && app.matchScore !== undefined ? ` · Punteggio compatibilità al momento dell'invio: ${app.matchScore}` : ""}</p>
+                </div>
+                <a class="btn btn--ghost btn--sm" href="job-detail.html?id=${encodeURIComponent(app.job.id)}">Vedi offerta</a>
+              </div>
+              ${JF.Jobs.renderApplicationTimeline(app.stato)}
+            </article>
+          `;
+        })
+        .join("");
+    }
+
+    function bindSidebarNav() {
+      const buttons = document.querySelectorAll(".sidebar-nav button");
+      buttons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          buttons.forEach((b) => b.classList.remove("is-active"));
+          btn.classList.add("is-active");
+
+          document.querySelectorAll(".dashboard-panel").forEach((panel) => panel.classList.remove("is-active"));
+          document.getElementById(`panel-${btn.dataset.panel}`).classList.add("is-active");
+        });
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,1165 @@
+/* =============================================================================
+   JobFinder — Design System
+   Mobile-first. Le regole base valgono per mobile, i breakpoint aggiungono
+   layout più ricchi per tablet (768px) e desktop (1024px).
+   ============================================================================= */
+
+/* ---------------------------------------------------------------------------
+   1. Design tokens
+   --------------------------------------------------------------------------- */
+:root {
+  /* Colore */
+  --color-ink: #14213d;          /* navy istituzionale, headline e navbar */
+  --color-ink-soft: #223258;
+  --color-primary: #2952e3;      /* azione principale */
+  --color-primary-dark: #1e3fc4;
+  --color-primary-soft: #eaefff;
+  --color-accent: #ff6b4a;       /* usato con parsimonia: preferiti, badge */
+  --color-success: #1b9c6e;
+  --color-success-soft: #e5f7f0;
+  --color-bg: #f7f8fb;
+  --color-surface: #ffffff;
+  --color-border: #e4e7ed;
+  --color-text: #1a1d29;
+  --color-text-muted: #6b7280;
+
+  /* Tipografia */
+  --font-display: Iowan Old Style, Palatino Linotype, Palatino, Georgia, "Noto Serif", serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  /* Raggio & ombre */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 18px;
+  --radius-pill: 999px;
+  --shadow-sm: 0 1px 2px rgba(20, 33, 61, 0.06), 0 1px 3px rgba(20, 33, 61, 0.08);
+  --shadow-md: 0 8px 24px rgba(20, 33, 61, 0.1);
+  --shadow-lg: 0 20px 45px rgba(20, 33, 61, 0.16);
+
+  /* Layout */
+  --container-width: 1180px;
+  --header-height: 68px;
+}
+
+/* ---------------------------------------------------------------------------
+   2. Reset minimo
+   --------------------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background: var(--color-bg);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+img { max-width: 100%; display: block; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; cursor: pointer; }
+ul { margin: 0; padding: 0; list-style: none; }
+h1, h2, h3, h4 { font-family: var(--font-display); margin: 0; line-height: 1.15; font-weight: 700; }
+p { margin: 0; }
+
+/* Focus visibile per accessibilità da tastiera */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+.container {
+  width: 100%;
+  max-width: var(--container-width);
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ---------------------------------------------------------------------------
+   3. Bottoni & elementi di form riutilizzabili
+   --------------------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 20px;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+.btn--primary { background: var(--color-primary); color: #fff; }
+.btn--primary:hover { background: var(--color-primary-dark); box-shadow: var(--shadow-sm); }
+.btn--accent { background: var(--color-accent); color: #fff; }
+.btn--accent:hover { filter: brightness(0.95); }
+.btn--ghost { background: transparent; color: var(--color-ink); border-color: var(--color-border); }
+.btn--ghost:hover { background: var(--color-primary-soft); border-color: var(--color-primary-soft); }
+.btn--outline { background: transparent; color: var(--color-primary); border-color: var(--color-primary); }
+.btn--outline:hover { background: var(--color-primary-soft); }
+.btn--danger { background: #fdeeec; color: #c0392b; }
+.btn--danger:hover { background: #fbdbd7; }
+.btn--block { width: 100%; }
+.btn--sm { padding: 7px 14px; font-size: 0.82rem; }
+.btn[disabled] { opacity: 0.55; cursor: not-allowed; }
+
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.field label { font-size: 0.85rem; font-weight: 600; color: var(--color-ink); }
+.field .hint { font-size: 0.78rem; color: var(--color-text-muted); }
+.field .error { font-size: 0.78rem; color: #c0392b; }
+.input, .select, .textarea {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  color: var(--color-text);
+}
+.input:focus, .select:focus, .textarea:focus {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+.textarea { resize: vertical; min-height: 100px; }
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 11px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+.tag--muted { background: var(--color-bg); color: var(--color-text-muted); border: 1px solid var(--color-border); }
+.tag--success { background: var(--color-success-soft); color: var(--color-success); }
+.tag--warning { background: #fff4e5; color: #b9770e; }
+.tag--danger { background: #fdeeec; color: #c0392b; }
+
+/* ---------------------------------------------------------------------------
+   4. Navbar
+   --------------------------------------------------------------------------- */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+.navbar__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--header-height);
+}
+.navbar__logo {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--color-ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.navbar__logo-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.navbar__logo span { color: var(--color-primary); }
+
+.navbar__toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: none;
+  border: none;
+  padding: 6px;
+}
+.navbar__toggle span { width: 22px; height: 2px; background: var(--color-ink); border-radius: 2px; }
+
+.navbar__menu {
+  position: fixed;
+  top: var(--header-height);
+  left: 0;
+  right: 0;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px 24px;
+  gap: 14px;
+  transform: translateY(-8px);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.18s ease;
+}
+.navbar__menu--open { transform: translateY(0); opacity: 1; visibility: visible; }
+.navbar__menu a { font-weight: 600; font-size: 0.92rem; color: var(--color-ink); padding: 4px 0; }
+
+@media (min-width: 768px) {
+  .navbar__toggle { display: none; }
+  .navbar__menu {
+    position: static;
+    flex-direction: row;
+    align-items: center;
+    padding: 0;
+    border: none;
+    transform: none;
+    opacity: 1;
+    visibility: visible;
+    gap: 26px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   5. Hero — elemento firma della homepage
+   --------------------------------------------------------------------------- */
+.hero {
+  background: linear-gradient(160deg, var(--color-ink) 0%, var(--color-ink-soft) 60%, #2a3d6e 100%);
+  color: #fff;
+  padding: 56px 0 90px;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  /* forma astratta decorativa, puro CSS, nessuna immagine esterna */
+  content: "";
+  position: absolute;
+  width: 520px;
+  height: 520px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(41, 82, 227, 0.35), transparent 70%);
+  top: -220px;
+  right: -160px;
+}
+.hero__inner { position: relative; }
+.hero__content { position: relative; z-index: 1; }
+.hero__character {
+  display: none; /* nascosto su mobile per non appesantire la hero */
+}
+.hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #b9c5f5;
+  margin-bottom: 18px;
+}
+.hero h1 {
+  font-size: 2rem;
+  max-width: 16ch;
+  margin-bottom: 16px;
+}
+.hero h1 .hero__rotating {
+  color: #ffb199;
+  display: inline-block;
+}
+.hero__subtitle {
+  color: #c7d0ee;
+  font-size: 1rem;
+  max-width: 46ch;
+  margin-bottom: 32px;
+}
+
+/* Search bar "a pillola", componente firma del progetto */
+.search-bar {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+  box-shadow: var(--shadow-lg);
+  max-width: 720px;
+}
+.search-bar__field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+}
+.search-bar__field svg { flex-shrink: 0; color: var(--color-text-muted); }
+.search-bar__field input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 0.94rem;
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background: transparent;
+}
+.search-bar__radius {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 0.9rem;
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background: transparent;
+  cursor: pointer;
+}
+.search-bar__divider { height: 1px; background: var(--color-border); margin: 0 6px; }
+
+/* Slider del raggio di distanza, riutilizzato sia nella hero che nei filtri di jobs.html */
+.radius-value { font-size: 0.78rem; font-weight: 700; color: var(--color-ink); white-space: nowrap; }
+.range-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--color-border);
+  outline: none;
+  cursor: pointer;
+  margin: 0;
+}
+.range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: var(--shadow-sm);
+}
+.range-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: var(--shadow-sm);
+}
+.range-slider::-moz-range-track { background: var(--color-border); height: 4px; border-radius: var(--radius-pill); }
+
+.search-bar__field--select {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 6px;
+}
+.search-bar__field--select .radius-value { text-align: left; }
+
+@media (min-width: 768px) {
+  .hero { padding: 76px 0 130px; }
+  .hero h1 { font-size: 2.75rem; max-width: 20ch; }
+  .search-bar {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+  }
+  .search-bar__divider { width: 1px; height: 32px; margin: 0; flex-shrink: 0; }
+  .search-bar__field { flex: 1; min-width: 0; }
+  .search-bar__field--select { flex: 0 0 auto; width: 170px; }
+}
+
+@media (min-width: 1024px) {
+  .hero__inner {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    align-items: center;
+    gap: 24px;
+  }
+  .hero__character {
+    display: block;
+    width: 100%;
+    max-width: 320px;
+    filter: drop-shadow(0 20px 45px rgba(0, 0, 0, 0.35));
+    animation: hero-float 5s ease-in-out infinite;
+  }
+  @keyframes hero-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-14px); }
+  }
+}
+
+/* Stat strip: numeri reali calcolati dai dati, sovrapposta al bordo hero */
+.stat-strip {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  margin-top: -54px;
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  text-align: center;
+}
+.stat-strip__item { padding: 22px 10px; border-right: 1px solid var(--color-border); }
+.stat-strip__item:last-child { border-right: none; }
+.stat-strip__number { font-family: var(--font-display); font-size: 1.6rem; font-weight: 700; color: var(--color-ink); }
+.stat-strip__label { font-size: 0.78rem; color: var(--color-text-muted); margin-top: 2px; }
+
+/* ---------------------------------------------------------------------------
+   6. Sezioni generiche
+   --------------------------------------------------------------------------- */
+.section { padding: 64px 0; }
+.section__head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 32px;
+}
+.section__eyebrow { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--color-primary); }
+.section__title { font-size: 1.6rem; color: var(--color-ink); }
+.section__subtitle { color: var(--color-text-muted); max-width: 60ch; }
+
+@media (min-width: 768px) {
+  .section__head { flex-direction: row; align-items: flex-end; justify-content: space-between; }
+}
+
+/* Categorie: griglia di pill cliccabili */
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.category-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.category-card:hover { border-color: var(--color-primary); transform: translateY(-2px); }
+.category-card__count { font-size: 0.78rem; color: var(--color-text-muted); }
+.category-card__name { font-weight: 700; color: var(--color-ink); margin-top: 2px; }
+
+@media (min-width: 768px) { .category-grid { grid-template-columns: repeat(4, 1fr); } }
+
+/* ---------------------------------------------------------------------------
+   7. Job card
+   --------------------------------------------------------------------------- */
+.jobs-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+@media (min-width: 640px) { .jobs-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .jobs-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.job-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.job-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.job-card__top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.job-card__top-right { display: flex; align-items: center; gap: 8px; }
+.job-card__logo {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+  background: var(--color-ink);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.05rem;
+  font-family: var(--font-display);
+}
+.job-card__save {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+}
+.job-card__save:hover { color: var(--color-accent); }
+.job-card__save.is-saved { color: var(--color-accent); }
+.job-card__save.is-saved svg { fill: currentColor; }
+
+.job-card__title { font-size: 1.05rem; }
+.job-card__title a:hover { color: var(--color-primary); }
+.job-card__company { color: var(--color-text-muted); font-size: 0.88rem; }
+.job-card__meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.job-card__salary { font-weight: 700; font-size: 0.92rem; color: var(--color-ink); }
+.job-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+}
+.empty-state h3 { color: var(--color-ink); margin-bottom: 6px; }
+
+/* ---------------------------------------------------------------------------
+   8. CTA aziende
+   --------------------------------------------------------------------------- */
+.cta-band {
+  background: var(--color-primary);
+  border-radius: var(--radius-lg);
+  padding: 40px 28px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: flex-start;
+}
+.cta-band h2 { font-size: 1.5rem; max-width: 24ch; }
+.cta-band p { color: #dbe3fd; max-width: 46ch; }
+@media (min-width: 768px) {
+  .cta-band { flex-direction: row; align-items: center; justify-content: space-between; }
+}
+
+/* ---------------------------------------------------------------------------
+   9. Footer
+   --------------------------------------------------------------------------- */
+.footer { background: var(--color-ink); color: #b9c2de; padding: 48px 0 24px; margin-top: 40px; }
+.footer__grid { display: grid; gap: 28px; grid-template-columns: 1fr; }
+.footer__logo { font-family: var(--font-display); font-size: 1.2rem; font-weight: 700; color: #fff; margin-bottom: 10px; }
+.footer__logo span { color: #ffb199; }
+.footer__col h4 { color: #fff; font-size: 0.85rem; margin-bottom: 12px; font-family: var(--font-body); }
+.footer__col a, .footer__col li { font-size: 0.85rem; color: #b9c2de; display: block; padding: 3px 0; }
+.footer__col a:hover { color: #fff; }
+.footer__bottom {
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  font-size: 0.78rem;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+@media (min-width: 768px) { .footer__grid { grid-template-columns: 2fr 1fr 1fr 1fr; } }
+
+/* ---------------------------------------------------------------------------
+   10. Toast
+   --------------------------------------------------------------------------- */
+.toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  left: 20px;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-end;
+}
+.toast {
+  background: var(--color-ink);
+  color: #fff;
+  padding: 12px 18px;
+  border-radius: var(--radius-md);
+  font-size: 0.86rem;
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: all 0.25s ease;
+  max-width: 320px;
+}
+.toast--visible { opacity: 1; transform: translateY(0); }
+.toast--success { background: var(--color-success); }
+.toast--error { background: #c0392b; }
+@media (min-width: 640px) { .toast-container { left: auto; } }
+
+/* ---------------------------------------------------------------------------
+   11. Modal (usata dalla Fase 3 in poi)
+   --------------------------------------------------------------------------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 33, 61, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 200;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease;
+}
+.modal-overlay.is-open { opacity: 1; visibility: visible; }
+.modal {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: 26px 22px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 88vh;
+  overflow-y: auto;
+  transform: translateY(16px);
+  transition: transform 0.2s ease;
+}
+.modal-overlay.is-open .modal { transform: translateY(0); }
+.modal__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.modal__close { background: none; border: none; font-size: 1.3rem; color: var(--color-text-muted); }
+@media (min-width: 640px) {
+  .modal-overlay { align-items: center; }
+  .modal { border-radius: var(--radius-lg); }
+}
+
+/* ---------------------------------------------------------------------------
+   12. Pagine di autenticazione (login / registrazione)
+   --------------------------------------------------------------------------- */
+.auth-shell {
+  min-height: calc(100vh - var(--header-height));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+  background: var(--color-bg);
+}
+.auth-card {
+  width: 100%;
+  max-width: 460px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 32px 26px;
+  box-shadow: var(--shadow-sm);
+}
+.auth-card__head { text-align: center; margin-bottom: 24px; }
+.auth-card__head h1 { font-size: 1.5rem; color: var(--color-ink); margin-bottom: 6px; }
+.auth-card__head p { color: var(--color-text-muted); font-size: 0.9rem; }
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  background: var(--color-bg);
+  border-radius: var(--radius-pill);
+  padding: 4px;
+  margin-bottom: 26px;
+}
+.auth-tab {
+  border: none;
+  background: transparent;
+  padding: 9px 12px;
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+.auth-tab.is-active { background: var(--color-surface); color: var(--color-ink); box-shadow: var(--shadow-sm); }
+
+.form-row { display: grid; grid-template-columns: 1fr; gap: 0 14px; }
+@media (min-width: 480px) { .form-row { grid-template-columns: 1fr 1fr; } }
+
+.form-alert {
+  background: #fdeeec;
+  color: #c0392b;
+  border: 1px solid #f6c9c3;
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+  display: none;
+}
+.form-alert.is-visible { display: block; }
+
+.auth-card__footer {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin-top: 18px;
+}
+.auth-card__footer a { color: var(--color-primary); font-weight: 600; }
+
+.demo-hint {
+  margin-top: 18px;
+  padding: 12px 14px;
+  background: var(--color-primary-soft);
+  border-radius: var(--radius-md);
+  font-size: 0.78rem;
+  color: var(--color-ink-soft);
+}
+.demo-hint strong { color: var(--color-ink); }
+
+/* ---------------------------------------------------------------------------
+   13. Layout dashboard (candidato e azienda)
+   --------------------------------------------------------------------------- */
+.dashboard {
+  display: block;
+  padding: 28px 0 64px;
+}
+.dashboard__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+@media (min-width: 900px) {
+  .dashboard__grid { grid-template-columns: 240px 1fr; align-items: start; }
+}
+
+.dashboard__sidebar {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+}
+.dashboard__profile-mini { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid var(--color-border); }
+.dashboard__avatar {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: var(--color-ink); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-family: var(--font-display); font-size: 1.3rem; flex-shrink: 0;
+}
+.dashboard__profile-mini strong { display: block; font-size: 0.9rem; color: var(--color-ink); }
+.dashboard__profile-mini span { font-size: 0.78rem; color: var(--color-text-muted); }
+
+.sidebar-nav { display: flex; flex-direction: column; gap: 4px; }
+.sidebar-nav button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+.sidebar-nav button:hover { background: var(--color-bg); color: var(--color-ink); }
+.sidebar-nav button.is-active { background: var(--color-primary-soft); color: var(--color-primary-dark); }
+
+.dashboard__content {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  min-height: 320px;
+}
+.dashboard__content-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.dashboard__content-head h2 { font-size: 1.25rem; color: var(--color-ink); }
+.dashboard-panel { display: none; }
+.dashboard-panel.is-active { display: block; }
+
+/* Card offerta gestita dall'azienda, con azioni modifica/elimina */
+.manage-job-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+}
+.manage-job-card__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.manage-job-card__title { font-size: 1rem; color: var(--color-ink); font-family: var(--font-display); font-weight: 700; }
+.manage-job-card__meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.manage-job-card__actions { display: flex; gap: 8px; margin-top: 6px; }
+
+/* Riga candidatura (dashboard candidato e azienda) */
+.application-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+}
+.application-row__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.application-row__title { font-weight: 700; color: var(--color-ink); font-size: 0.95rem; }
+.application-row__sub { font-size: 0.82rem; color: var(--color-text-muted); }
+.application-row__footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+
+@media (min-width: 640px) {
+  .manage-job-card, .application-row { flex-direction: row; align-items: center; justify-content: space-between; }
+  .manage-job-card__actions { margin-top: 0; flex-shrink: 0; }
+}
+
+/* ---------------------------------------------------------------------------
+   14. Pagina dettaglio offerta
+   --------------------------------------------------------------------------- */
+.job-detail-header {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  padding: 32px 0;
+}
+.job-detail-header__top { display: flex; align-items: flex-start; gap: 16px; }
+.job-detail-header__logo {
+  width: 76px; height: 76px; border-radius: var(--radius-md);
+  background: var(--color-ink); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-family: var(--font-display); font-size: 1.5rem; flex-shrink: 0;
+}
+.job-detail-header__title { font-size: 1.5rem; color: var(--color-ink); margin-bottom: 4px; }
+.job-detail-header__company { color: var(--color-text-muted); font-size: 0.95rem; }
+.job-detail-header__meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.job-detail-header__actions { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+
+.job-detail-body { padding: 36px 0 60px; }
+.job-detail-grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
+@media (min-width: 900px) { .job-detail-grid { grid-template-columns: 2fr 1fr; align-items: start; } }
+
+.job-detail-block { margin-bottom: 26px; }
+.job-detail-block h2 { font-size: 1.05rem; color: var(--color-ink); margin-bottom: 10px; }
+.job-detail-block p { color: var(--color-text); }
+.job-detail-block ul { display: flex; flex-direction: column; gap: 8px; }
+.job-detail-block li { display: flex; gap: 10px; align-items: flex-start; color: var(--color-text); font-size: 0.92rem; }
+.job-detail-block li::before { content: "✓"; color: var(--color-success); font-weight: 700; flex-shrink: 0; }
+
+.job-detail-aside {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+.job-detail-aside h3 { font-size: 0.95rem; color: var(--color-ink); margin-bottom: 10px; }
+.job-detail-aside p { font-size: 0.88rem; color: var(--color-text-muted); margin-bottom: 4px; }
+
+/* ---------------------------------------------------------------------------
+   15. Pagina elenco offerte con filtri
+   --------------------------------------------------------------------------- */
+.jobs-layout { display: grid; grid-template-columns: 1fr; gap: 20px; padding: 28px 0 60px; }
+@media (min-width: 900px) { .jobs-layout { grid-template-columns: 260px 1fr; align-items: start; } }
+
+.filters-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  position: sticky;
+  top: calc(var(--header-height) + 16px);
+}
+.filters-panel h3 { font-size: 0.95rem; color: var(--color-ink); margin-bottom: 14px; }
+.filters-panel .field:last-child { margin-bottom: 0; }
+
+.results-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.results-head p { color: var(--color-text-muted); font-size: 0.9rem; }
+
+/* ---------------------------------------------------------------------------
+   17. Timeline candidatura
+   --------------------------------------------------------------------------- */
+.application-timeline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+  margin: 10px 0;
+}
+.timeline-step { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 70px; }
+.timeline-step__dot {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--color-border);
+  border: 2px solid var(--color-border);
+  display: block;
+}
+.timeline-step__label { font-size: 0.72rem; color: var(--color-text-muted); text-align: center; }
+.timeline-connector { flex: 1; height: 2px; background: var(--color-border); min-width: 16px; margin-bottom: 20px; }
+
+.timeline-step--done .timeline-step__dot { background: var(--color-success); border-color: var(--color-success); }
+.timeline-step--done .timeline-step__label { color: var(--color-ink); }
+.timeline-step--current .timeline-step__dot { background: var(--color-primary); border-color: var(--color-primary); box-shadow: 0 0 0 4px var(--color-primary-soft); }
+.timeline-step--current .timeline-step__label { color: var(--color-primary-dark); font-weight: 700; }
+.timeline-step--rejected-from .timeline-step__dot { background: var(--color-border); }
+
+.application-timeline--rejected { opacity: 0.75; }
+.timeline-rejected-note {
+  width: 100%;
+  margin-top: 6px;
+  font-size: 0.78rem;
+  color: #c0392b;
+  font-weight: 600;
+}
+
+/* Box compatibilità nel dettaglio offerta */
+.match-box { border-radius: var(--radius-md); padding: 16px; margin-bottom: 18px; }
+.match-box--high { background: var(--color-success-soft); }
+.match-box--mid { background: #fff4e5; }
+.match-box--low { background: #fdeeec; }
+.match-box__score { font-family: var(--font-display); font-size: 1.6rem; font-weight: 700; color: var(--color-ink); }
+.match-box__bar { height: 8px; background: rgba(0,0,0,0.08); border-radius: var(--radius-pill); overflow: hidden; margin: 8px 0 12px; }
+.match-box__bar-fill { height: 100%; border-radius: var(--radius-pill); background: var(--color-primary); }
+.match-box__skills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+
+/* ---------------------------------------------------------------------------
+   19. Chat candidato-azienda
+   --------------------------------------------------------------------------- */
+.chat-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  padding: 28px 0 60px;
+  height: calc(100vh - var(--header-height) - 88px);
+  min-height: 480px;
+}
+@media (min-width: 900px) {
+  .chat-layout { grid-template-columns: 300px 1fr; }
+}
+
+.chat-sidebar {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.chat-sidebar__title { padding: 16px 16px 8px; font-size: 1rem; color: var(--color-ink); }
+
+.chat-list-item {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  border-bottom: 1px solid var(--color-border);
+}
+.chat-list-item:hover { background: var(--color-bg); }
+.chat-list-item.is-active { background: var(--color-primary-soft); }
+.chat-list-item__avatar {
+  width: 50px; height: 50px; border-radius: 50%; flex-shrink: 0;
+  background: var(--color-ink); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-family: var(--font-display); font-size: 1rem;
+}
+.chat-list-item__body { min-width: 0; flex: 1; }
+.chat-list-item__top { display: flex; align-items: center; justify-content: space-between; }
+.chat-list-item__name { font-weight: 700; font-size: 0.88rem; color: var(--color-ink); }
+.chat-list-item__job { font-size: 0.74rem; color: var(--color-primary-dark); display: block; }
+.chat-list-item__preview {
+  font-size: 0.8rem; color: var(--color-text-muted); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.chat-window {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.chat-empty { margin: auto; text-align: center; padding: 20px; color: var(--color-text-muted); }
+.chat-empty h3 { color: var(--color-ink); margin-bottom: 6px; }
+
+.chat-window__header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 18px; border-bottom: 1px solid var(--color-border);
+}
+.chat-window__name { font-weight: 700; color: var(--color-ink); font-size: 0.95rem; }
+.chat-window__job { font-size: 0.78rem; color: var(--color-text-muted); }
+
+.chat-messages { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+.chat-bubble-row { display: flex; }
+.chat-bubble-row--mine { justify-content: flex-end; }
+.chat-bubble {
+  max-width: 72%;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+}
+.chat-bubble p { font-size: 0.9rem; color: var(--color-text); }
+.chat-bubble--mine { background: var(--color-primary); }
+.chat-bubble--mine p { color: #fff; }
+.chat-bubble__time { display: block; font-size: 0.68rem; color: var(--color-text-muted); margin-top: 4px; }
+.chat-bubble--mine .chat-bubble__time { color: rgba(255,255,255,0.75); }
+
+.chat-input-row { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-top: 1px solid var(--color-border); }
+.chat-input-row .input { flex: 1; }
+
+.chat-attach-btn {
+  flex-shrink: 0;
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 1.1rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.chat-attach-btn:hover { background: var(--color-bg); }
+
+.chat-attachment-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin: 0 18px 10px;
+  padding: 6px 10px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  border-radius: var(--radius-pill);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.chat-attachment-chip button {
+  background: none; border: none; color: inherit;
+  font-size: 1rem; line-height: 1; cursor: pointer; padding: 0 2px;
+}
+
+.chat-attachment-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.85rem; font-weight: 600;
+  margin-top: 4px;
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+}
+.chat-bubble--mine .chat-attachment-link { color: #fff; }
+
+.chat-banner { padding: 12px 18px; font-size: 0.85rem; }
+.chat-banner--pending { background: #fff4e5; }
+.chat-banner--pending p { margin-bottom: 10px; color: var(--color-ink); }
+.chat-banner__actions { display: flex; gap: 8px; }
+.chat-banner--declined { background: #fdeeec; color: #c0392b; }
+.chat-banner--waiting { background: var(--color-bg); color: var(--color-text-muted); border-top: 1px solid var(--color-border); }
+
+/* Badge messaggi non letti sul link "Messaggi" in navbar */
+.navbar-msg-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent); color: #fff;
+  font-size: 0.68rem; font-weight: 700; margin-left: 6px;
+}
+
+/* ---------------------------------------------------------------------------
+   20. Autocompletamento città (Photon/OpenStreetMap) — riutilizzabile ovunque
+   --------------------------------------------------------------------------- */
+.autocomplete-wrapper { position: relative; }
+
+.autocomplete-suggestions {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  max-height: 260px;
+  overflow-y: auto;
+  display: none;
+  padding: 6px;
+}
+.autocomplete-suggestions.is-open { display: block; }
+
+.autocomplete-suggestion {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.86rem;
+  color: var(--color-text);
+}
+.autocomplete-suggestion:hover,
+.autocomplete-suggestion.is-active {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+}
+
+/* Dentro la search-bar della hero, i suggerimenti devono restare leggibili anche su sfondo bianco della pillola */
+.search-bar__field.autocomplete-wrapper { position: relative; }
+.search-bar .autocomplete-suggestions { left: -12px; right: -12px; top: calc(100% + 10px); }
+
+/* ---------------------------------------------------------------------------
+   21. Mappa offerta (Leaflet / OpenStreetMap)
+   --------------------------------------------------------------------------- */
+.job-map {
+  width: 100%;
+  height: 260px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  margin-bottom: 18px;
+  background: var(--color-bg);
+}
+/* Leaflet inietta i propri stili via CDN; qui armonizziamo solo i controlli con il design system */
+.job-map .leaflet-popup-content-wrapper { border-radius: var(--radius-md); }
+.job-map-unavailable {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 20px;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+/* ---------------------------------------------------------------------------
+   22. Avatar utente (foto profilo candidato / logo azienda)
+   --------------------------------------------------------------------------- */
+/* Applicata insieme alla classe di contesto (job-card__logo, dashboard__avatar,
+   chat-list-item__avatar, ...): eredita da quella dimensioni/forma/radius,
+   qui definiamo solo come deve comportarsi l'immagine al suo interno. */
+.avatar-img { object-fit: cover; display: block; }
+
+/* Usata quando riempiamo un contenitore avatar già presente nel markup statico */
+.avatar-img-fill { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block; }
+
+.avatar-upload-preview-row { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+.avatar-upload-preview {
+  width: 84px; height: 84px; border-radius: 50%; flex-shrink: 0;
+  background: var(--color-ink); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-family: var(--font-display); font-size: 1.5rem;
+  overflow: hidden;
+}
+.navbar__user-link { display: inline-flex; align-items: center; gap: 8px; }
+.navbar__user-avatar {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  background: var(--color-ink); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-family: var(--font-display); font-size: 0.75rem;
+}
+
+/* ---------------------------------------------------------------------------
+   18. Utility
+   --------------------------------------------------------------------------- */
+.mt-0 { margin-top: 0; }
+.text-muted { color: var(--color-text-muted); }
+.text-center { text-align: center; }
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}

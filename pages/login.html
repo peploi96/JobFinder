@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Accedi — JobFinder</title>
+  <link rel="icon" type="image/x-icon" href="../assets/images/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/images/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="../assets/images/favicon-16.png" />
+  <link rel="apple-touch-icon" href="../assets/images/apple-touch-icon.png" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+  <div id="navbar-root" data-base-path="../"></div>
+
+  <main class="auth-shell">
+    <div class="auth-card">
+      <div class="auth-card__head">
+        <h1>Bentornato/a</h1>
+        <p>Accedi al tuo account JobFinder</p>
+      </div>
+
+      <div class="form-alert" id="loginAlert"></div>
+
+      <form id="loginForm" novalidate>
+        <div class="field">
+          <label for="email">Email</label>
+          <input class="input" type="email" id="email" name="email" required autocomplete="email" />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input class="input" type="password" id="password" name="password" required autocomplete="current-password" />
+        </div>
+        <button class="btn btn--primary btn--block" type="submit">Accedi</button>
+      </form>
+
+      <div class="demo-hint">
+        <strong>Account demo azienda:</strong> hr@nordweb.it / demo1234<br />
+        Non hai un account candidato? Registrane uno nuovo dal link qui sotto.
+      </div>
+
+      <p class="auth-card__footer">
+        Non hai un account? <a href="register.html">Registrati gratis</a>
+      </p>
+    </div>
+  </main>
+
+  <script src="../js/storage.js" defer></script>
+  <script src="../js/auth.js" defer></script>
+  <script src="../js/geo.js" defer></script>
+  <script src="../js/jobs.js" defer></script>
+  <script src="../js/matching.js" defer></script>
+  <script src="../js/chat.js" defer></script>
+  <script src="../js/app.js" defer></script>
+  <script defer>
+    document.addEventListener("DOMContentLoaded", () => {
+      JF.App.initPage();
+
+      // Se già loggato, non ha senso restare sul login: rimanda alla dashboard giusta
+      const current = JF.Auth.getCurrentUser();
+      if (current) {
+        window.location.href = current.tipo === "azienda" ? "dashboard-company.html" : "dashboard-user.html";
+        return;
+      }
+
+      const form = document.getElementById("loginForm");
+      const alertBox = document.getElementById("loginAlert");
+
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+
+        const result = JF.Auth.login(email, password);
+        if (!result.ok) {
+          alertBox.textContent = result.error;
+          alertBox.classList.add("is-visible");
+          return;
+        }
+
+        window.location.href = result.user.tipo === "azienda" ? "dashboard-company.html" : "dashboard-user.html";
+      });
+    });
+  </script>
+</body>
+</html>

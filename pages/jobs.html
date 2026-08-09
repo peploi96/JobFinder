@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cerca offerte di lavoro — JobFinder</title>
+  <link rel="icon" type="image/x-icon" href="../assets/images/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/images/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="../assets/images/favicon-16.png" />
+  <link rel="apple-touch-icon" href="../assets/images/apple-touch-icon.png" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+  <div id="navbar-root" data-base-path="../"></div>
+
+  <div class="container">
+    <div class="jobs-layout">
+
+      <!-- ===================== FILTRI ===================== -->
+      <aside class="filters-panel">
+        <h3>Filtra offerte</h3>
+        <form id="filtersForm">
+          <div class="field">
+            <label for="fQuery">Parola chiave</label>
+            <input class="input" type="text" id="fQuery" placeholder="Titolo, descrizione..." />
+          </div>
+          <div class="field">
+            <label for="fLocalita">Località</label>
+            <div class="autocomplete-wrapper">
+              <input class="input" type="text" id="fLocalita" placeholder="Città o Remoto" />
+              <div class="autocomplete-suggestions"></div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="fRadius">Raggio: <span id="fRadiusValue" class="radius-value">Solo questa città</span></label>
+            <input type="range" id="fRadius" min="0" max="100" step="5" value="0" class="range-slider" aria-label="Raggio di distanza in km" />
+          </div>
+          <div class="field">
+            <label for="fCategoria">Categoria</label>
+            <select class="select" id="fCategoria">
+              <option value="">Tutte le categorie</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="fContratto">Tipo contratto</label>
+            <select class="select" id="fContratto">
+              <option value="">Tutti i contratti</option>
+            </select>
+          </div>
+          <div class="field" id="matchFilterField" style="display:none;">
+            <label style="display:flex; align-items:center; gap:8px; font-weight:600;">
+              <input type="checkbox" id="fOnlyCompatible" style="width:auto;" />
+              Solo offerte compatibili con me
+            </label>
+          </div>
+          <button class="btn btn--primary btn--block" type="submit">Applica filtri</button>
+          <button class="btn btn--ghost btn--block" type="button" id="resetFilters" style="margin-top: 8px;">Azzera filtri</button>
+        </form>
+      </aside>
+
+      <!-- ===================== RISULTATI ===================== -->
+      <section>
+        <div class="results-head">
+          <div>
+            <h2 class="section__title" style="font-size: 1.3rem;">Offerte di lavoro</h2>
+            <p id="resultsCount">Caricamento...</p>
+          </div>
+        </div>
+        <div class="jobs-grid" id="jobsGrid"></div>
+      </section>
+
+    </div>
+  </div>
+
+  <script src="../js/storage.js" defer></script>
+  <script src="../js/auth.js" defer></script>
+  <script src="../js/geo.js" defer></script>
+  <script src="../js/jobs.js" defer></script>
+  <script src="../js/matching.js" defer></script>
+  <script src="../js/chat.js" defer></script>
+  <script src="../js/app.js" defer></script>
+  <script defer>
+    document.addEventListener("DOMContentLoaded", () => {
+      JF.App.initPage();
+      populateFilterOptions();
+      setupMatchFilter();
+      JF.Geo.setupLocationAutocomplete(document.getElementById("fLocalita"));
+      bindRadiusSlider(document.getElementById("fRadius"), document.getElementById("fRadiusValue"));
+      applyFiltersFromUrl();
+      bindFilterForm();
+    });
+
+    /** Aggiorna l'etichetta live dello slider raggio ("Solo questa città" / "+N km"). */
+    function bindRadiusSlider(slider, labelEl) {
+      if (!slider || !labelEl) return;
+      const update = () => {
+        const val = Number(slider.value);
+        labelEl.textContent = val === 0 ? "Solo questa città" : `+${val} km`;
+      };
+      slider.addEventListener("input", update);
+      update();
+    }
+
+    function setupMatchFilter() {
+      const currentUser = JF.Auth.getCurrentUser();
+      if (currentUser && currentUser.tipo === "candidato") {
+        document.getElementById("matchFilterField").style.display = "block";
+      }
+    }
+
+    function populateFilterOptions() {
+      const categoriaSelect = document.getElementById("fCategoria");
+      JF.Jobs.getCategories().forEach((cat) => {
+        const opt = document.createElement("option");
+        opt.value = cat;
+        opt.textContent = cat;
+        categoriaSelect.appendChild(opt);
+      });
+
+      const contrattoSelect = document.getElementById("fContratto");
+      JF.Jobs.getContractTypes().forEach((tipo) => {
+        const opt = document.createElement("option");
+        opt.value = tipo;
+        opt.textContent = tipo;
+        contrattoSelect.appendChild(opt);
+      });
+    }
+
+    /** Se si arriva da un link con ?q=, ?location=, ?radius= o ?categoria=, precompila i filtri (es. dalla homepage). */
+    function applyFiltersFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("q")) document.getElementById("fQuery").value = params.get("q");
+      // "location" è il parametro attuale; "localita" resta supportato per link più vecchi
+      const location = params.get("location") || params.get("localita");
+      if (location) document.getElementById("fLocalita").value = location;
+      if (params.get("radius")) document.getElementById("fRadius").value = params.get("radius");
+      document.getElementById("fRadius").dispatchEvent(new Event("input")); // aggiorna l'etichetta live dello slider
+      if (params.get("categoria")) document.getElementById("fCategoria").value = params.get("categoria");
+      runSearch();
+    }
+
+    function bindFilterForm() {
+      document.getElementById("filtersForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        runSearch();
+      });
+      document.getElementById("resetFilters").addEventListener("click", () => {
+        document.getElementById("filtersForm").reset();
+        document.getElementById("fRadius").dispatchEvent(new Event("input")); // form.reset() non attiva l'evento "input" sullo slider
+        runSearch();
+      });
+      const compatibleCheckbox = document.getElementById("fOnlyCompatible");
+      if (compatibleCheckbox) compatibleCheckbox.addEventListener("change", runSearch);
+    }
+
+    /** Riflette i filtri correnti nell'URL (?q=&location=&radius=&categoria=&contratto=), senza ricaricare la pagina. */
+    function syncUrl(criteria) {
+      const params = new URLSearchParams();
+      if (criteria.q) params.set("q", criteria.q);
+      if (criteria.localita) params.set("location", criteria.localita);
+      if (criteria.localita && Number(criteria.radius) > 0) params.set("radius", criteria.radius);
+      if (criteria.categoria) params.set("categoria", criteria.categoria);
+      if (criteria.tipoContratto) params.set("contratto", criteria.tipoContratto);
+      const query = params.toString();
+      const newUrl = query ? `${window.location.pathname}?${query}` : window.location.pathname;
+      window.history.replaceState({}, "", newUrl);
+    }
+
+    async function runSearch() {
+      const criteria = {
+        q: document.getElementById("fQuery").value,
+        localita: document.getElementById("fLocalita").value,
+        categoria: document.getElementById("fCategoria").value,
+        tipoContratto: document.getElementById("fContratto").value,
+        radius: document.getElementById("fRadius").value,
+      };
+      syncUrl(criteria);
+
+      // Il filtro per raggio richiede geocodifica in rete: mostriamo uno stato di caricamento,
+      // visibile solo quando serve (nessun ritardo percepito per le ricerche senza raggio).
+      const isRadiusSearch = !!(criteria.localita.trim() && Number(criteria.radius) > 0);
+      if (isRadiusSearch) showSearchLoading();
+
+      let results = await JF.Jobs.searchJobsWithRadius(criteria);
+
+      const currentUser = JF.Auth.getCurrentUser();
+      const onlyCompatible = document.getElementById("fOnlyCompatible")?.checked;
+      if (onlyCompatible && currentUser && currentUser.tipo === "candidato") {
+        results = results.filter((job) => JF.Matching.computeMatch(currentUser, job).score >= 1);
+      }
+
+      renderResults(results);
+    }
+
+    function showSearchLoading() {
+      document.getElementById("resultsCount").textContent = "Ricerca in corso...";
+      document.getElementById("jobsGrid").innerHTML = `
+        <div class="empty-state" style="grid-column: 1 / -1;">
+          <h3>Sto calcolando le distanze...</h3>
+          <p>Stiamo localizzando le città per trovare le offerte entro il raggio scelto. Con molte città diverse può richiedere qualche secondo.</p>
+        </div>
+      `;
+    }
+
+    function renderResults(jobs) {
+      const grid = document.getElementById("jobsGrid");
+      const countLabel = document.getElementById("resultsCount");
+      countLabel.textContent = `${jobs.length} offerte trovate`;
+
+      if (jobs.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state" style="grid-column: 1 / -1;">
+            <h3>Nessuna offerta trovata</h3>
+            <p>Prova ad azzerare i filtri o a usare parole chiave diverse.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const currentUser = JF.Auth.getCurrentUser();
+      const isCandidate = currentUser && currentUser.tipo === "candidato";
+      grid.innerHTML = jobs
+        .map((job) =>
+          JF.Jobs.renderJobCard(job, {
+            basePath: "",
+            favorited: JF.Jobs.isFavorite(currentUser, job.id),
+            matchScore: isCandidate ? JF.Matching.computeMatch(currentUser, job).score : null,
+          })
+        )
+        .join("");
+    }
+  </script>
+</body>
+</html>

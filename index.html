@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JobFinder — Trova il lavoro giusto per te</title>
+  <meta name="description" content="JobFinder: cerca offerte di lavoro, candidati o pubblica annunci per la tua azienda." />
+  <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/images/favicon-16.png" />
+  <link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- La navbar viene costruita dinamicamente da app.js in base allo stato di sessione -->
+  <div id="navbar-root" data-base-path=""></div>
+
+  <!-- ===================== HERO ===================== -->
+  <header class="hero">
+    <div class="container hero__inner">
+      <div class="hero__content">
+        <span class="hero__eyebrow">Oltre <span id="heroJobsCount">0</span> offerte attive in tutta Italia</span>
+        <h1>Trova lavoro come<br /><span class="hero__rotating" id="heroRotating">Sviluppatore Frontend</span></h1>
+        <p class="hero__subtitle">
+          Cerca, filtra e candidati alle migliori offerte di lavoro. Oppure pubblica il tuo annuncio
+          e trova il candidato giusto per la tua azienda, tutto in un unico posto.
+        </p>
+
+        <form class="search-bar" id="heroSearchForm">
+          <div class="search-bar__field">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" id="searchQuery" placeholder="Titolo, azienda o parola chiave" aria-label="Parola chiave" />
+          </div>
+          <div class="search-bar__divider"></div>
+          <div class="search-bar__field autocomplete-wrapper">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+            <input type="text" id="searchLocation" placeholder="Città o \"Remoto\"" aria-label="Località" />
+            <div class="autocomplete-suggestions"></div>
+          </div>
+          <div class="search-bar__divider"></div>
+          <div class="search-bar__field search-bar__field--select">
+            <label for="searchRadius" class="radius-value">Raggio: <span id="searchRadiusValue">Solo questa città</span></label>
+            <input type="range" id="searchRadius" min="0" max="100" step="5" value="0" class="range-slider" aria-label="Raggio di distanza in km" />
+          </div>
+          <button type="submit" class="btn btn--primary">Cerca offerte</button>
+        </form>
+      </div>
+      <img src="assets/images/hero-character.png" alt="Mascotte di JobFinder: un personaggio pixel art con un occhio grande e una valigetta da lavoro" class="hero__character" />
+    </div>
+  </header>
+
+  <!-- Stat strip: numeri reali calcolati dai dati salvati, non decorativi -->
+  <div class="container">
+    <div class="stat-strip">
+      <div class="stat-strip__item">
+        <div class="stat-strip__number" id="statJobs">0</div>
+        <div class="stat-strip__label">Offerte attive</div>
+      </div>
+      <div class="stat-strip__item">
+        <div class="stat-strip__number" id="statCompanies">0</div>
+        <div class="stat-strip__label">Aziende registrate</div>
+      </div>
+      <div class="stat-strip__item">
+        <div class="stat-strip__number" id="statCategories">0</div>
+        <div class="stat-strip__label">Categorie</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== CATEGORIE ===================== -->
+  <section class="section" id="categorie">
+    <div class="container">
+      <div class="section__head">
+        <div>
+          <span class="section__eyebrow">Esplora</span>
+          <h2 class="section__title">Cerca per categoria</h2>
+        </div>
+      </div>
+      <div class="category-grid" id="categoryGrid">
+        <!-- popolato via JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== OFFERTE IN EVIDENZA ===================== -->
+  <section class="section" id="offerte">
+    <div class="container">
+      <div class="section__head">
+        <div>
+          <span class="section__eyebrow" id="resultsEyebrow">In evidenza</span>
+          <h2 class="section__title" id="resultsTitle">Offerte pubblicate di recente</h2>
+          <p class="text-muted" id="matchSummary" style="margin-top: 6px; display: none;"></p>
+        </div>
+        <a class="btn btn--outline" href="pages/jobs.html">Vedi tutte le offerte</a>
+      </div>
+      <div class="jobs-grid" id="jobsGrid">
+        <!-- popolato via JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== CTA AZIENDE ===================== -->
+  <section class="section" id="aziende">
+    <div class="container">
+      <div class="cta-band">
+        <div>
+          <h2>Devi assumere? Pubblica il tuo primo annuncio gratis.</h2>
+          <p>Crea un profilo aziendale, pubblica l'offerta e ricevi le candidature direttamente nella tua dashboard.</p>
+        </div>
+        <a class="btn btn--accent" href="pages/register.html">Registra la tua azienda</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== FOOTER ===================== -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__grid">
+        <div class="footer__col">
+          <div class="footer__logo">Job<span>Finder</span></div>
+          <p>La piattaforma per trovare lavoro o il candidato giusto, in un unico posto.</p>
+        </div>
+        <div class="footer__col">
+          <h4>Candidati</h4>
+          <a href="pages/jobs.html">Cerca offerte</a>
+          <a href="pages/register.html">Crea profilo</a>
+          <a href="pages/dashboard-user.html">Le mie candidature</a>
+        </div>
+        <div class="footer__col">
+          <h4>Aziende</h4>
+          <a href="pages/register.html">Registra azienda</a>
+          <a href="pages/dashboard-company.html">Pubblica offerta</a>
+        </div>
+        <div class="footer__col">
+          <h4>JobFinder</h4>
+          <a href="#categorie">Categorie</a>
+          <a href="#offerte">Offerte</a>
+        </div>
+      </div>
+      <div class="footer__bottom">
+        <span>© <span id="footerYear"></span> JobFinder. Progetto demo, dati salvati solo nel tuo browser.</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Script: ordine importante, ognuno dipende dal precedente -->
+  <script src="js/storage.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/geo.js" defer></script>
+  <script src="js/jobs.js" defer></script>
+  <script src="js/matching.js" defer></script>
+  <script src="js/chat.js" defer></script>
+  <script src="js/app.js" defer></script>
+  <script defer>
+    // Script specifico della homepage: stat strip, categorie, offerte, ricerca, typewriter hero.
+    document.addEventListener("DOMContentLoaded", () => {
+      JF.App.initPage();
+      renderHomeStats();
+      renderCategories();
+      renderFeaturedJobs(JF.Jobs.getLatestJobs(6));
+      renderMatchSummary();
+      bindHeroSearch();
+      startHeroTypewriter();
+      JF.Geo.setupLocationAutocomplete(document.getElementById("searchLocation"));
+      bindRadiusSlider(document.getElementById("searchRadius"), document.getElementById("searchRadiusValue"));
+    });
+
+    /** Aggiorna l'etichetta live dello slider raggio ("Solo questa città" / "+N km"). */
+    function bindRadiusSlider(slider, labelEl) {
+      if (!slider || !labelEl) return;
+      const update = () => {
+        const val = Number(slider.value);
+        labelEl.textContent = val === 0 ? "Solo questa città" : `+${val} km`;
+      };
+      slider.addEventListener("input", update);
+      update();
+    }
+
+    function renderMatchSummary() {
+      const currentUser = JF.Auth.getCurrentUser();
+      const summary = document.getElementById("matchSummary");
+      if (!currentUser || currentUser.tipo !== "candidato") return;
+
+      const compatible = JF.Matching.getCompatibleJobs(currentUser, 1);
+      summary.style.display = "block";
+      summary.innerHTML =
+        compatible.length > 0
+          ? `✨ Hai <strong>${compatible.length} offerte compatibili</strong> disponibili in base al tuo profilo. <a href="pages/dashboard-user.html">Guardale nella tua dashboard →</a>`
+          : `Completa il tuo profilo con competenze ed esperienza per vedere le offerte più compatibili con te.`;
+    }
+
+    function renderHomeStats() {
+      const jobs = JF.Storage.getJobs().filter((j) => j.stato === "attiva");
+      const companies = JF.Storage.getUsers().filter((u) => u.tipo === "azienda");
+      const categories = JF.Jobs.getCategories();
+
+      document.getElementById("heroJobsCount").textContent = jobs.length;
+      document.getElementById("statJobs").textContent = jobs.length;
+      document.getElementById("statCompanies").textContent = companies.length;
+      document.getElementById("statCategories").textContent = categories.length;
+    }
+
+    function renderCategories() {
+      const grid = document.getElementById("categoryGrid");
+      const jobs = JF.Storage.getJobs().filter((j) => j.stato === "attiva");
+      const categories = JF.Jobs.getCategories();
+
+      grid.innerHTML = categories
+        .map((cat) => {
+          const count = jobs.filter((j) => j.categoria === cat).length;
+          return `
+            <button class="category-card" type="button" data-category="${JF.Jobs.escapeHtml(cat)}">
+              <div class="category-card__name">${JF.Jobs.escapeHtml(cat)}</div>
+              <div class="category-card__count">${count} offerte</div>
+            </button>
+          `;
+        })
+        .join("");
+
+      grid.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-category]");
+        if (!btn) return;
+        window.location.href = `pages/jobs.html?categoria=${encodeURIComponent(btn.dataset.category)}`;
+      });
+    }
+
+    function renderFeaturedJobs(jobs, customTitle) {
+      const grid = document.getElementById("jobsGrid");
+      const title = document.getElementById("resultsTitle");
+      const eyebrow = document.getElementById("resultsEyebrow");
+
+      if (customTitle) {
+        title.textContent = customTitle;
+        eyebrow.textContent = `${jobs.length} risultati`;
+      } else {
+        title.textContent = "Offerte pubblicate di recente";
+        eyebrow.textContent = "In evidenza";
+      }
+
+      if (jobs.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state" style="grid-column: 1 / -1;">
+            <h3>Nessuna offerta trovata</h3>
+            <p>Prova a modificare i criteri di ricerca oppure esplora tutte le categorie disponibili.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const currentUser = JF.Auth.getCurrentUser();
+      const isCandidate = currentUser && currentUser.tipo === "candidato";
+      grid.innerHTML = jobs
+        .map((job) =>
+          JF.Jobs.renderJobCard(job, {
+            basePath: "pages/",
+            favorited: JF.Jobs.isFavorite(currentUser, job.id),
+            matchScore: isCandidate ? JF.Matching.computeMatch(currentUser, job).score : null,
+          })
+        )
+        .join("");
+    }
+
+    function bindHeroSearch() {
+      const form = document.getElementById("heroSearchForm");
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const q = document.getElementById("searchQuery").value.trim();
+        const location = document.getElementById("searchLocation").value.trim();
+        const radius = document.getElementById("searchRadius").value;
+        const params = new URLSearchParams();
+        if (q) params.set("q", q);
+        if (location) params.set("location", location);
+        if (location && Number(radius) > 0) params.set("radius", radius);
+        window.location.href = `pages/jobs.html?${params.toString()}`;
+      });
+    }
+
+    /** Rotazione testuale dei ruoli nell'hero: elemento firma della homepage. */
+    function startHeroTypewriter() {
+      const roles = ["Sviluppatore Frontend", "UI/UX Designer", "Data Analyst", "Project Manager", "Store Manager"];
+      const el = document.getElementById("heroRotating");
+      if (!el) return;
+
+      let roleIndex = 0;
+      let charIndex = roles[0].length;
+      let deleting = false;
+
+      function tick() {
+        const currentRole = roles[roleIndex];
+        charIndex += deleting ? -1 : 1;
+        el.textContent = currentRole.slice(0, charIndex);
+
+        let delay = deleting ? 40 : 70;
+
+        if (!deleting && charIndex === currentRole.length) {
+          delay = 1600; // pausa a fine parola
+          deleting = true;
+        } else if (deleting && charIndex === 0) {
+          deleting = false;
+          roleIndex = (roleIndex + 1) % roles.length;
+          delay = 300;
+        }
+
+        setTimeout(tick, delay);
+      }
+
+      setTimeout(tick, 1600);
+    }
+  </script>
+</body>
+</html>

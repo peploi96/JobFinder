@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title id="pageTitle">Profilo azienda — JobFinder</title>
+  <link rel="icon" type="image/x-icon" href="../assets/images/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/images/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="../assets/images/favicon-16.png" />
+  <link rel="apple-touch-icon" href="../assets/images/apple-touch-icon.png" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+  <div id="navbar-root" data-base-path="../"></div>
+
+  <div id="profileContent"></div>
+
+  <script src="../js/storage.js" defer></script>
+  <script src="../js/auth.js" defer></script>
+  <script src="../js/geo.js" defer></script>
+  <script src="../js/jobs.js" defer></script>
+  <script src="../js/matching.js" defer></script>
+  <script src="../js/chat.js" defer></script>
+  <script src="../js/app.js" defer></script>
+  <script defer>
+    document.addEventListener("DOMContentLoaded", () => {
+      JF.App.initPage();
+      renderCompanyProfile();
+    });
+
+    function renderCompanyProfile() {
+      const params = new URLSearchParams(window.location.search);
+      const companyId = params.get("id");
+      const company = companyId ? JF.Storage.getUserById(companyId) : null;
+      const container = document.getElementById("profileContent");
+
+      if (!company || company.tipo !== "azienda") {
+        container.innerHTML = `
+          <div class="container" style="padding: 60px 0;">
+            <div class="empty-state">
+              <h3>Azienda non trovata</h3>
+              <a class="btn btn--primary" href="jobs.html">Torna alle offerte</a>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      document.getElementById("pageTitle").textContent = `${company.ragioneSociale} — JobFinder`;
+      const activeJobs = JF.Jobs.getJobsByCompany(company.id).filter((j) => j.stato === "attiva");
+      const currentUser = JF.Auth.getCurrentUser();
+      const isCandidate = currentUser && currentUser.tipo === "candidato";
+
+      container.innerHTML = `
+        <header class="job-detail-header">
+          <div class="container">
+            <a href="jobs.html" class="text-muted" style="font-size: 0.85rem; display: inline-block; margin-bottom: 18px;">&larr; Torna alle offerte</a>
+            <div class="job-detail-header__top">
+              ${JF.Jobs.renderAvatar(company, "job-detail-header__logo")}
+              <div>
+                <h1 class="job-detail-header__title">${JF.Jobs.escapeHtml(company.ragioneSociale)}</h1>
+                <p class="job-detail-header__company">${JF.Jobs.escapeHtml(company.settore || "Settore non specificato")}</p>
+              </div>
+            </div>
+            <div class="job-detail-header__meta">
+              ${company.sitoWeb ? `<span class="tag tag--muted">${JF.Jobs.escapeHtml(company.sitoWeb)}</span>` : ""}
+              <span class="tag tag--muted">${activeJobs.length} offerte attive</span>
+            </div>
+          </div>
+        </header>
+
+        <div class="container job-detail-body">
+          <div class="job-detail-block" style="max-width: 760px;">
+            <h2>Chi siamo</h2>
+            <p>${company.bio ? JF.Jobs.escapeHtml(company.bio) : "Questa azienda non ha ancora aggiunto una descrizione."}</p>
+          </div>
+
+          <div class="job-detail-block">
+            <h2>Offerte attive (${activeJobs.length})</h2>
+            <div class="jobs-grid" id="companyJobsGrid"></div>
+          </div>
+        </div>
+      `;
+
+      const grid = document.getElementById("companyJobsGrid");
+      if (activeJobs.length === 0) {
+        grid.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><h3>Nessuna offerta attiva al momento</h3></div>`;
+        return;
+      }
+      grid.innerHTML = activeJobs
+        .map((job) =>
+          JF.Jobs.renderJobCard(job, {
+            basePath: "",
+            favorited: JF.Jobs.isFavorite(currentUser, job.id),
+            matchScore: isCandidate ? JF.Matching.computeMatch(currentUser, job).score : null,
+          })
+        )
+        .join("");
+    }
+  </script>
+</body>
+</html>

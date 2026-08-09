@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title id="pageTitle">Profilo candidato — JobFinder</title>
+  <link rel="icon" type="image/x-icon" href="../assets/images/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/images/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="../assets/images/favicon-16.png" />
+  <link rel="apple-touch-icon" href="../assets/images/apple-touch-icon.png" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+  <div id="navbar-root" data-base-path="../"></div>
+
+  <div id="profileContent"></div>
+
+  <script src="../js/storage.js" defer></script>
+  <script src="../js/auth.js" defer></script>
+  <script src="../js/geo.js" defer></script>
+  <script src="../js/jobs.js" defer></script>
+  <script src="../js/matching.js" defer></script>
+  <script src="../js/chat.js" defer></script>
+  <script src="../js/app.js" defer></script>
+  <script defer>
+    document.addEventListener("DOMContentLoaded", () => {
+      JF.App.initPage();
+      renderCandidateProfile();
+    });
+
+    function renderCandidateProfile() {
+      const params = new URLSearchParams(window.location.search);
+      const candidateId = params.get("id");
+      const jobId = params.get("job"); // opzionale: se arriviamo da una candidatura specifica, mostriamo anche il match
+      const candidate = candidateId ? JF.Storage.getUserById(candidateId) : null;
+      const container = document.getElementById("profileContent");
+
+      if (!candidate || candidate.tipo !== "candidato") {
+        container.innerHTML = `
+          <div class="container" style="padding: 60px 0;">
+            <div class="empty-state">
+              <h3>Candidato non trovato</h3>
+              <a class="btn btn--primary" href="jobs.html">Torna alle offerte</a>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      document.getElementById("pageTitle").textContent = `${candidate.nome} ${candidate.cognome} — JobFinder`;
+
+      const currentUser = JF.Auth.getCurrentUser();
+      const isOwnProfile = currentUser && currentUser.id === candidate.id;
+      const isCompanyViewer = currentUser && currentUser.tipo === "azienda";
+      const canViewPrivateInfo = isOwnProfile || isCompanyViewer; // email, telefono, CV: non pubblici a chiunque
+
+      const fullName = `${candidate.nome} ${candidate.cognome}`.trim() || "Candidato";
+      const competenze = Array.isArray(candidate.competenze) ? candidate.competenze : [];
+      const job = jobId ? JF.Storage.getJobById(jobId) : null;
+      const match = job && isCompanyViewer ? JF.Matching.computeMatch(candidate, job) : null;
+
+      container.innerHTML = `
+        <header class="job-detail-header">
+          <div class="container">
+            <a href="javascript:history.back()" class="text-muted" style="font-size: 0.85rem; display: inline-block; margin-bottom: 18px;">&larr; Indietro</a>
+            <div class="job-detail-header__top">
+              ${JF.Jobs.renderAvatar(candidate, "job-detail-header__logo")}
+              <div>
+                <h1 class="job-detail-header__title">${JF.Jobs.escapeHtml(fullName)}</h1>
+                <p class="job-detail-header__company">
+                  ${canViewPrivateInfo ? JF.Jobs.escapeHtml(candidate.email) : "Candidato JobFinder"}
+                  ${canViewPrivateInfo && candidate.telefono ? ` · ${JF.Jobs.escapeHtml(candidate.telefono)}` : ""}
+                </p>
+              </div>
+            </div>
+            <div class="job-detail-header__meta">
+              <span class="tag tag--muted">${competenze.length} competenze indicate</span>
+              ${job ? `<span class="tag tag--muted">Candidato/a per: ${JF.Jobs.escapeHtml(job.titolo)}</span>` : ""}
+            </div>
+            <div class="job-detail-header__actions">
+              ${isCompanyViewer ? `<button class="btn btn--primary" id="contactCandidateBtn" type="button">✉️ Contatta candidato</button>` : ""}
+              ${canViewPrivateInfo && candidate.cvFile ? `<a class="btn btn--outline" href="${candidate.cvFile.dataUrl}" download="${JF.Jobs.escapeHtml(candidate.cvFile.name)}">📄 Scarica CV</a>` : ""}
+            </div>
+          </div>
+        </header>
+
+        <div class="container job-detail-body">
+          <div class="job-detail-grid">
+            <div>
+              <div class="job-detail-block">
+                <h2>Chi è</h2>
+                <p>${candidate.bio ? JF.Jobs.escapeHtml(candidate.bio) : "Questo candidato non ha ancora aggiunto una presentazione."}</p>
+              </div>
+
+              <div class="job-detail-block">
+                <h2>Competenze</h2>
+                ${
+                  competenze.length
+                    ? `<div class="match-box__skills">${competenze.map((s) => `<span class="tag">${JF.Jobs.escapeHtml(s)}</span>`).join("")}</div>`
+                    : `<p class="text-muted">Nessuna competenza indicata al momento.</p>`
+                }
+              </div>
+
+              ${
+                !canViewPrivateInfo
+                  ? `<div class="empty-state"><h3>Contatti e CV riservati</h3><p>Accedi con un account azienda per vedere email, telefono e curriculum di questo candidato.</p></div>`
+                  : ""
+              }
+            </div>
+
+            <aside>
+              ${match ? renderMatchBox(match) : ""}
+              <div class="job-detail-aside">
+                <h3>Riepilogo profilo</h3>
+                <p><strong>Nome:</strong> ${JF.Jobs.escapeHtml(fullName)}</p>
+                <p><strong>Competenze:</strong> ${competenze.length}</p>
+                <p><strong>CV:</strong> ${candidate.cvFile ? "Caricato" : "Non caricato"}</p>
+              </div>
+            </aside>
+          </div>
+        </div>
+      `;
+
+      const contactBtn = document.getElementById("contactCandidateBtn");
+      if (contactBtn) contactBtn.addEventListener("click", () => openContactCandidateModal(candidate, jobId));
+    }
+
+    /** Stesso box di compatibilità usato nel dettaglio offerta, qui riferito al candidato osservato. */
+    function renderMatchBox(match) {
+      const level = match.score >= 4 ? "high" : match.score >= 2 ? "mid" : "low";
+      return `
+        <div class="match-box match-box--${level}">
+          <div class="match-box__score">Punteggio ${match.score}</div>
+          ${
+            match.matchedSkills.length > 0
+              ? `<p style="font-size:0.82rem; color: var(--color-text-muted); margin-bottom:6px;">Competenze in comune con l'offerta:</p>
+                 <div class="match-box__skills">${match.matchedSkills.map((s) => `<span class="tag tag--success">${JF.Jobs.escapeHtml(s)}</span>`).join("")}</div>`
+              : `<p style="font-size:0.82rem; color: var(--color-text-muted);">Nessuna competenza in comune con questa offerta.</p>`
+          }
+        </div>
+      `;
+    }
+
+    /** Modal per l'azienda che vuole scrivere al candidato direttamente dal suo profilo. */
+    function openContactCandidateModal(candidate, jobId) {
+      const currentUser = JF.Auth.getCurrentUser();
+      let attachment = null;
+
+      const overlay = document.createElement("div");
+      overlay.className = "modal-overlay";
+      overlay.innerHTML = `
+        <div class="modal">
+          <div class="modal__head">
+            <h3>Scrivi a ${JF.Jobs.escapeHtml(`${candidate.nome} ${candidate.cognome}`.trim())}</h3>
+            <button class="modal__close" type="button" id="candidateMsgModalClose" aria-label="Chiudi">&times;</button>
+          </div>
+          <p class="hint" style="margin-bottom:14px;">Il candidato dovrà accettare la conversazione prima di poterti rispondere.</p>
+          <form id="candidateMsgForm">
+            <div class="field">
+              <textarea class="textarea" id="candidateMsgText" placeholder="Scrivi il tuo messaggio..." style="min-height:120px;"></textarea>
+            </div>
+            <div class="field">
+              <label>Allegato (facoltativo)</label>
+              <input class="input" type="file" id="candidateMsgAttachmentInput" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg" />
+              <div id="candidateMsgAttachmentPreview"></div>
+              <span class="hint">Massimo 3MB.</span>
+            </div>
+            <button class="btn btn--primary btn--block" type="submit">Invia richiesta</button>
+          </form>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      requestAnimationFrame(() => overlay.classList.add("is-open"));
+      overlay.querySelector("#candidateMsgModalClose").addEventListener("click", () => overlay.remove());
+      overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+
+      function refreshPreview() {
+        const box = overlay.querySelector("#candidateMsgAttachmentPreview");
+        if (!attachment) { box.innerHTML = ""; return; }
+        box.innerHTML = `
+          <div class="chat-attachment-chip" style="margin: 8px 0 0;">
+            <span>📎 ${JF.Jobs.escapeHtml(attachment.name)}</span>
+            <button type="button" id="candidateMsgAttachmentRemove" aria-label="Rimuovi allegato">&times;</button>
+          </div>
+        `;
+        box.querySelector("#candidateMsgAttachmentRemove").addEventListener("click", () => {
+          attachment = null;
+          overlay.querySelector("#candidateMsgAttachmentInput").value = "";
+          refreshPreview();
+        });
+      }
+
+      overlay.querySelector("#candidateMsgAttachmentInput").addEventListener("change", (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        if (file.size > 3 * 1024 * 1024) {
+          JF.App.showToast("Il file è troppo grande: massimo 3MB in questa demo", "error");
+          e.target.value = "";
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          attachment = { name: file.name, dataUrl: reader.result, size: file.size };
+          refreshPreview();
+        };
+        reader.readAsDataURL(file);
+      });
+
+      overlay.querySelector("#candidateMsgForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const testo = document.getElementById("candidateMsgText").value;
+        const result = JF.Chat.startConversation(currentUser, candidate.id, testo, jobId || null, attachment);
+        if (!result.ok) {
+          JF.App.showToast(result.error, "error");
+          return;
+        }
+        window.location.href = `chat.html?conv=${encodeURIComponent(result.conversation.id)}`;
+      });
+    }
+  </script>
+</body>
+</html>
