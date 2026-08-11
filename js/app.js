@@ -91,10 +91,7 @@ JF.App = (function () {
 
   function renderLoggedNav(session, basePath) {
     const user = JF.Storage.getUserById(session.id);
-    const dashboardUrl =
-      session.tipo === "azienda"
-        ? `${basePath}pages/dashboard-company.html`
-        : `${basePath}pages/dashboard-user.html`;
+    const dashboardUrl = `${basePath}pages/${JF.Auth.getDashboardPage(user)}`;
     const label = user ? (session.tipo === "azienda" ? user.ragioneSociale : user.nome) : "";
     const notifCount = JF.Chat ? JF.Chat.getNotificationCount(session.id, session.tipo) : 0;
     const badge = notifCount > 0 ? `<span class="navbar-msg-badge">${notifCount}</span>` : "";

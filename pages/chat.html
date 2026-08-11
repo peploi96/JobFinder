@@ -16,7 +16,7 @@
 
   <main class="dashboard">
     <div class="container">
-      <div class="chat-layout">
+      <div class="chat-layout" id="chatLayout">
 
         <aside class="chat-sidebar">
           <h3 class="chat-sidebar__title">Messaggi</h3>
@@ -132,8 +132,13 @@
       const awaitingMyDecision = conv.status === "pending" && conv.initiatorId !== currentUser.id;
       const awaitingTheirDecision = conv.status === "pending" && conv.initiatorId === currentUser.id;
 
+      // Su mobile mostriamo un pannello alla volta: apertura di una conversazione
+      // nasconde la lista e mostra la finestra a tutto schermo (con pulsante "indietro").
+      document.getElementById("chatLayout").classList.add("has-active-conversation");
+
       windowEl.innerHTML = `
         <div class="chat-window__header">
+          <button type="button" class="chat-back-btn" id="chatBackBtn" aria-label="Torna ai messaggi">&larr;</button>
           ${JF.Jobs.renderAvatar(otherUser, "chat-list-item__avatar")}
           <div style="flex:1;">
             <div class="chat-window__name">${JF.Jobs.escapeHtml(name)}</div>
@@ -150,6 +155,10 @@
         </div>
         <div id="chatFooter"></div>
       `;
+
+      document.getElementById("chatBackBtn").addEventListener("click", () => {
+        document.getElementById("chatLayout").classList.remove("has-active-conversation");
+      });
 
       const messagesEl = document.getElementById("chatMessages");
       messagesEl.scrollTop = messagesEl.scrollHeight;

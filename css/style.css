@@ -858,11 +858,19 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: 18px;
-  position: sticky;
-  top: calc(var(--header-height) + 16px);
+  /* position: sticky solo da 900px in su (vedi media query sotto): sul layout
+     a una colonna del mobile "restava incollato" in alto e copriva i risultati
+     sottostanti mentre si scorreva la pagina. */
 }
 .filters-panel h3 { font-size: 0.95rem; color: var(--color-ink); margin-bottom: 14px; }
 .filters-panel .field:last-child { margin-bottom: 0; }
+
+@media (min-width: 900px) {
+  .filters-panel {
+    position: sticky;
+    top: calc(var(--header-height) + 16px);
+  }
+}
 
 .results-head {
   display: flex;
@@ -934,6 +942,32 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .chat-layout { grid-template-columns: 300px 1fr; }
 }
 
+/* Mobile: un pannello alla volta (come una vera app di messaggistica), non
+   entrambi impilati nello stesso spazio verticale limitato — altrimenti lista
+   e conversazione finiscono per accavallarsi e "coprirsi" a vicenda. */
+.chat-window { display: none; }
+.chat-layout.has-active-conversation .chat-sidebar { display: none; }
+.chat-layout.has-active-conversation .chat-window { display: flex; }
+
+.chat-back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  flex-shrink: 0;
+  font-size: 1.1rem;
+}
+
+@media (min-width: 900px) {
+  /* Da qui in su c'è spazio per entrambi affiancati: sempre visibili indipendentemente dallo stato */
+  .chat-sidebar { display: flex !important; }
+  .chat-window { display: flex !important; }
+  .chat-back-btn { display: none; }
+}
+
 .chat-sidebar {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -975,7 +1009,6 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  display: flex;
   flex-direction: column;
   overflow: hidden;
 }
@@ -1151,6 +1184,45 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   background: var(--color-ink); color: #fff;
   display: flex; align-items: center; justify-content: center;
   font-weight: 700; font-family: var(--font-display); font-size: 0.75rem;
+}
+
+/* ---------------------------------------------------------------------------
+   23. Dashboard amministratore
+   --------------------------------------------------------------------------- */
+.admin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+@media (min-width: 640px) { .admin-stats-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.admin-stat-card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 20px 16px;
+  text-align: center;
+}
+.admin-stat-card__value {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+.admin-stat-card__label {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+
+.admin-tag-warning {
+  display: inline-block;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background: #fff4e5;
+  color: #b9770e;
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
 }
 
 /* ---------------------------------------------------------------------------

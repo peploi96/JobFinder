@@ -113,6 +113,19 @@ JF.Auth = (function () {
     return user;
   }
 
+  /**
+   * Nome del file della dashboard corretta in base al tipo di utente (senza
+   * percorso: il chiamante aggiunge l'eventuale basePath). Centralizzato qui
+   * per non dover ripetere lo stesso ternario/if in ogni pagina che reindirizza
+   * dopo il login o quando un utente già loggato visita login/register.
+   */
+  function getDashboardPage(user) {
+    if (!user) return "login.html";
+    if (user.tipo === "azienda") return "dashboard-company.html";
+    if (user.tipo === "admin") return "dashboard-admin.html";
+    return "dashboard-user.html";
+  }
+
   /** Aggiorna i dati del profilo dell'utente corrente. */
   function updateCurrentUser(fields) {
     const user = getCurrentUser();
@@ -127,6 +140,7 @@ JF.Auth = (function () {
     login,
     logout,
     requireAuth,
+    getDashboardPage,
     updateCurrentUser,
   };
 })();

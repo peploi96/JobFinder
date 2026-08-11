@@ -53,7 +53,8 @@
       const currentUser = JF.Auth.getCurrentUser();
       const isOwnProfile = currentUser && currentUser.id === candidate.id;
       const isCompanyViewer = currentUser && currentUser.tipo === "azienda";
-      const canViewPrivateInfo = isOwnProfile || isCompanyViewer; // email, telefono, CV: non pubblici a chiunque
+      const isAdminViewer = currentUser && currentUser.tipo === "admin";
+      const canViewPrivateInfo = isOwnProfile || isCompanyViewer || isAdminViewer; // email, telefono, CV: non pubblici a chiunque
 
       const fullName = `${candidate.nome} ${candidate.cognome}`.trim() || "Candidato";
       const competenze = Array.isArray(candidate.competenze) ? candidate.competenze : [];

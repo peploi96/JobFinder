@@ -60,7 +60,7 @@
       // Se già loggato, non ha senso restare sul login: rimanda alla dashboard giusta
       const current = JF.Auth.getCurrentUser();
       if (current) {
-        window.location.href = current.tipo === "azienda" ? "dashboard-company.html" : "dashboard-user.html";
+        window.location.href = JF.Auth.getDashboardPage(current);
         return;
       }
 
@@ -79,7 +79,7 @@
           return;
         }
 
-        window.location.href = result.user.tipo === "azienda" ? "dashboard-company.html" : "dashboard-user.html";
+        window.location.href = JF.Auth.getDashboardPage(result.user);
       });
     });
   </script>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pannello amministratore — JobFinder</title>
+  <link rel="icon" type="image/x-icon" href="../assets/images/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/images/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="../assets/images/favicon-16.png" />
+  <link rel="apple-touch-icon" href="../assets/images/apple-touch-icon.png" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+  <div id="navbar-root" data-base-path="../"></div>
+
+  <main class="dashboard">
+    <div class="container">
+      <div class="dashboard__grid">
+
+        <!-- ===================== SIDEBAR ===================== -->
+        <aside class="dashboard__sidebar">
+          <div class="dashboard__profile-mini">
+            <div class="dashboard__avatar" id="miniAvatar">--</div>
+            <div>
+              <strong id="miniName">—</strong>
+              <span id="miniEmail">—</span>
+            </div>
+          </div>
+          <nav class="sidebar-nav">
+            <button type="button" class="is-active" data-panel="panoramica">📊 Panoramica</button>
+            <button type="button" data-panel="offerte">📋 Offerte</button>
+            <button type="button" data-panel="aziende">🏢 Aziende</button>
+            <button type="button" data-panel="candidati">👤 Candidati</button>
+          </nav>
+        </aside>
+
+        <!-- ===================== CONTENUTO ===================== -->
+        <section class="dashboard__content">
+
+          <!-- Panel: panoramica -->
+          <div class="dashboard-panel is-active" id="panel-panoramica">
+            <div class="dashboard__content-head"><h2>Panoramica piattaforma</h2></div>
+            <div class="admin-stats-grid" id="adminStatsGrid"></div>
+          </div>
+
+          <!-- Panel: offerte -->
+          <div class="dashboard-panel" id="panel-offerte">
+            <div class="dashboard__content-head">
+              <h2>Tutte le offerte</h2>
+              <p class="text-muted" id="jobsCountLabel"></p>
+            </div>
+            <div id="adminJobsList"></div>
+          </div>
+
+          <!-- Panel: aziende -->
+          <div class="dashboard-panel" id="panel-aziende">
+            <div class="dashboard__content-head">
+              <h2>Tutte le aziende</h2>
+              <p class="text-muted" id="companiesCountLabel"></p>
+            </div>
+            <div class="admin-tag-warning">⚠️ Eliminare un'azienda cancella anche tutte le sue offerte e le candidature ricevute.</div>
+            <div id="adminCompaniesList"></div>
+          </div>
+
+          <!-- Panel: candidati -->
+          <div class="dashboard-panel" id="panel-candidati">
+            <div class="dashboard__content-head">
+              <h2>Tutti i candidati</h2>
+              <p class="text-muted" id="candidatesCountLabel"></p>
+            </div>
+            <div class="admin-tag-warning">⚠️ Eliminare un candidato cancella anche tutte le sue candidature.</div>
+            <div id="adminCandidatesList"></div>
+          </div>
+
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script src="../js/storage.js" defer></script>
+  <script src="../js/auth.js" defer></script>
+  <script src="../js/geo.js" defer></script>
+  <script src="../js/jobs.js" defer></script>
+  <script src="../js/matching.js" defer></script>
+  <script src="../js/chat.js" defer></script>
+  <script src="../js/app.js" defer></script>
+  <script src="../js/admin.js" defer></script>
+</body>
+</html>

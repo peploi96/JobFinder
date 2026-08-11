@@ -224,6 +224,70 @@ JF.Storage = (function () {
   }
 
   // ---------------------------------------------------------------------
+  // Amministrazione (ruolo "admin"): eliminazioni con cascata.
+  // Isolate qui invece che nel modulo admin.js perché toccano più collezioni
+  // insieme (utenti, offerte, candidature, conversazioni/messaggi): la logica
+  // di coerenza dei dati resta comunque compito esclusivo dello storage layer.
+  // ---------------------------------------------------------------------
+
+  /**
+   * Elimina una singola offerta e tutto ciò che dipende SOLO da essa:
+   * le candidature ricevute. Le conversazioni tra le due persone non vengono
+   * cancellate (sono una relazione candidato-azienda, non solo un dettaglio
+   * dell'offerta): perdono semplicemente il riferimento a un'offerta che non
+   * esiste più.
+   */
+  function adminDeleteJob(jobId) {
+    saveJobs(getJobs().filter((j) => j.id !== jobId));
+    saveApplications(getApplications().filter((a) => a.jobId !== jobId));
+    saveConversations(
+      getConversations().map((c) => (c.jobId === jobId ? { ...c, jobId: null } : c))
+    );
+    return true;
+  }
+
+  /**
+   * Elimina un'azienda e, in cascata: tutte le sue offerte (con le rispettive
+   * candidature), eventuali candidature rimaste agganciate direttamente
+   * all'azienda, e le conversazioni (con i relativi messaggi) che la
+   * coinvolgono.
+   */
+  function adminDeleteCompany(companyId) {
+    getJobs()
+      .filter((j) => j.aziendaId === companyId)
+      .forEach((job) => adminDeleteJob(job.id));
+
+    saveApplications(getApplications().filter((a) => a.aziendaId !== companyId));
+
+    const conversationIdsToRemove = getConversations()
+      .filter((c) => c.aziendaId === companyId)
+      .map((c) => c.id);
+    saveConversations(getConversations().filter((c) => c.aziendaId !== companyId));
+    saveMessages(getMessages().filter((m) => !conversationIdsToRemove.includes(m.conversationId)));
+
+    saveUsers(getUsers().filter((u) => u.id !== companyId));
+    return true;
+  }
+
+  /**
+   * Elimina un candidato e, in cascata: le sue candidature e le conversazioni
+   * (con i relativi messaggi) che lo coinvolgono. I preferiti vivono dentro
+   * l'oggetto utente stesso, quindi spariscono automaticamente con lui.
+   */
+  function adminDeleteCandidate(candidateId) {
+    saveApplications(getApplications().filter((a) => a.candidatoId !== candidateId));
+
+    const conversationIdsToRemove = getConversations()
+      .filter((c) => c.candidatoId === candidateId)
+      .map((c) => c.id);
+    saveConversations(getConversations().filter((c) => c.candidatoId !== candidateId));
+    saveMessages(getMessages().filter((m) => !conversationIdsToRemove.includes(m.conversationId)));
+
+    saveUsers(getUsers().filter((u) => u.id !== candidateId));
+    return true;
+  }
+
+  // ---------------------------------------------------------------------
   // Sessione (utente attualmente loggato)
   // ---------------------------------------------------------------------
 
@@ -489,7 +553,20 @@ JF.Storage = (function () {
       createdAt: "2026-06-15T09:00:00.000Z",
     };
 
-    writeJSON(KEYS.USERS, [...demoCompanies, demoCandidate]);
+    // Account amministratore: nessun form di registrazione pubblico lo crea,
+    // esiste solo come dato seed (in un'app reale andrebbe creato con un
+    // processo separato e più protetto, non tramite il sito pubblico).
+    const demoAdmin = {
+      id: "user_admin1",
+      tipo: "admin",
+      email: "admin@jobfinder.it",
+      password: "admin1234",
+      nome: "Amministratore",
+      fotoProfilo: null,
+      createdAt: "2024-01-01T09:00:00.000Z",
+    };
+
+    writeJSON(KEYS.USERS, [...demoCompanies, demoCandidate, demoAdmin]);
     writeJSON(KEYS.JOBS, demoJobs);
     writeJSON(KEYS.APPLICATIONS, []);
 
@@ -601,6 +678,30 @@ JF.Storage = (function () {
     if (conversationsChanged) saveConversations(conversations);
   }
 
+  /**
+   * Garantisce che l'account amministratore esista sempre, anche nei browser
+   * che avevano già dati JobFinder salvati da prima dell'introduzione del
+   * ruolo admin (seedIfNeeded() gira una sola volta: chi ha già i propri
+   * dati salvati non lo rieseguirebbe mai, e migrateData() sistema solo i
+   * campi di utenti già esistenti, non ne aggiunge di nuovi). Idempotente:
+   * se l'admin esiste già non fa nulla.
+   */
+  function ensureAdminExists() {
+    const users = getUsers();
+    if (users.some((u) => u.tipo === "admin")) return;
+
+    users.push({
+      id: "user_admin1",
+      tipo: "admin",
+      email: "admin@jobfinder.it",
+      password: "admin1234",
+      nome: "Amministratore",
+      fotoProfilo: null,
+      createdAt: new Date().toISOString(),
+    });
+    saveUsers(users);
+  }
+
   // API pubblica del modulo
   return {
     KEYS,
@@ -608,6 +709,7 @@ JF.Storage = (function () {
     isStorageAvailable,
     seedIfNeeded,
     migrateData,
+    ensureAdminExists,
     // users
     getUsers,
     saveUsers,
@@ -636,6 +738,10 @@ JF.Storage = (function () {
     getMessages,
     saveMessages,
     addMessage,
+    // amministrazione
+    adminDeleteJob,
+    adminDeleteCompany,
+    adminDeleteCandidate,
     // session
     getSession,
     setSession,
@@ -649,4 +755,5 @@ JF.Storage = (function () {
 if (JF.Storage.isStorageAvailable()) {
   JF.Storage.seedIfNeeded();
   JF.Storage.migrateData();
+  JF.Storage.ensureAdminExists();
 }
